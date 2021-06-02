@@ -1,14 +1,16 @@
+pub mod network;
 pub mod node;
-pub mod utils; // TODO: remove pub (left it to avoid warnings)
+pub mod protocol;
+mod utils;
 
 #[cfg(test)]
 mod tests {
-    use super::node::Node;
+    use super::protocol::create_node;
     use super::utils;
 
     #[test]
-    fn kademlia_node() {
-        let node = Node::new(utils::get_local_ip().unwrap(), 1337);
+    fn create_kademlia_node() {
+        let node = create_node(utils::get_local_ip().unwrap(), 1337);
         let node_info = node.get_info();
 
         assert_eq!(
