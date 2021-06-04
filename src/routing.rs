@@ -1,4 +1,5 @@
 use super::node::Node;
+use super::N_BUCKETS;
 
 pub struct KBucket {
     nodes: Vec<Node>,
@@ -21,9 +22,11 @@ impl KBucket {
 
 impl<'a> RoutingTable<'a> {
     fn new(node: &'a Node) -> Self {
-        Self {
-            node,
-            kbuckets: Vec::new(),
+        let mut kbuckets: Vec<KBucket> = Vec::new();
+        for _ in 0..N_BUCKETS {
+            kbuckets.push(KBucket::new());
         }
+
+        Self { node, kbuckets }
     }
 }
