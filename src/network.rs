@@ -21,7 +21,7 @@ enum Message {
 }
 
 struct RpcMessage<'a> {
-    token: String,
+    token: ID,
     src: &'a Node,
     dst: &'a Node,
     msg: Message,
