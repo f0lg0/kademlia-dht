@@ -1,9 +1,12 @@
 use sha2::{Digest, Sha256};
 
+// keeping it simple
+pub type ID = String;
+
 pub struct Node {
     ip: String,
     port: u16,
-    id: String,
+    id: ID,
 }
 
 impl Node {

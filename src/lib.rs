@@ -4,8 +4,7 @@ pub mod protocol;
 pub mod routing;
 mod utils;
 
-const KEY_LEN: usize = 20;
-const N_BUCKETS: usize = KEY_LEN * 8;
+const N_BUCKETS: usize = 20;
 const K_PARAM: usize = 8;
 
 #[cfg(test)]
