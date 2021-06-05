@@ -1,36 +1,20 @@
-use hex;
-use sha2::{Digest, Sha256};
-// keeping it simple
-pub type ID = [u8; 32];
+use super::key::Key;
 
 pub struct Node {
     ip: String,
     port: u16,
-    id: ID,
+    id: Key,
 }
 
 impl Node {
     pub fn new(ip: String, port: u16) -> Self {
-        let str_addr = format!("{}:{}", ip, port);
-        let addr = str_addr.as_bytes();
-
-        // hashing addr
-        let mut hasher = Sha256::new();
-        hasher.update(&addr);
-
-        let result = hasher.finalize();
-        let hash = format!("{:X}", result);
-        let decoded = hex::decode(hash).expect("Decoding failed");
-
-        let mut id = [0; 32];
-        for i in 0..decoded.len() {
-            id[i] = decoded[i];
-        }
+        let addr = format!("{}:{}", ip, port);
+        let id = Key::new(addr);
 
         Node { ip, port, id }
     }
     pub fn get_info(&self) -> String {
-        let mut parsed_id = hex::encode(&self.id);
+        let mut parsed_id = hex::encode(self.id.borrow());
         parsed_id = parsed_id.to_ascii_uppercase();
 
         format!("{}:{}:{}", self.ip, self.port, parsed_id)

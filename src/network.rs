@@ -1,13 +1,14 @@
+use super::key::Key;
 use super::node::*;
 
 enum Request {
     Ping,
     Store(String, String),
-    FindNode(ID),
+    FindNode(Key),
     FindValue(String),
 }
 
-// TODO
+// TODO: attach correct return data to fields
 enum Response {
     Ping,
     FindNode,
@@ -21,7 +22,7 @@ enum Message {
 }
 
 struct RpcMessage<'a> {
-    token: ID,
+    token: Key,
     src: &'a Node,
     dst: &'a Node,
     msg: Message,
