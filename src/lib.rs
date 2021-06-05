@@ -3,7 +3,7 @@ pub mod network;
 pub mod node;
 pub mod protocol;
 pub mod routing;
-mod utils;
+pub mod utils;
 
 const N_BUCKETS: usize = 20;
 const K_PARAM: usize = 8;

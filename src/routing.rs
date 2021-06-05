@@ -1,9 +1,10 @@
 use super::node::Node;
+use super::K_PARAM;
 use super::N_BUCKETS;
 
 pub struct KBucket {
     nodes: Vec<Node>,
-    size: u32,
+    size: usize,
 }
 
 pub struct RoutingTable<'a> {
@@ -15,7 +16,7 @@ impl KBucket {
     fn new() -> Self {
         Self {
             nodes: Vec::new(),
-            size: 20,
+            size: K_PARAM,
         }
     }
 }
