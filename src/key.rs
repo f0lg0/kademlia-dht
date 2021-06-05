@@ -33,3 +33,28 @@ impl Debug for Key {
         Ok(())
     }
 }
+
+pub struct Distance([u8; KEY_LEN]);
+
+impl Distance {
+    pub fn new(k1: &Key, k2: &Key) -> Distance {
+        let k1_bytes = k1.borrow();
+        let k2_bytes = k2.borrow();
+
+        let mut ret = [0; KEY_LEN];
+        for i in 0..KEY_LEN {
+            ret[i] = k1_bytes[i] ^ k2_bytes[i];
+        }
+
+        Self(ret)
+    }
+}
+
+impl Debug for Distance {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        for x in &self.0 {
+            write!(f, "{:X}", x).expect("Failed to format contents of Distance");
+        }
+        Ok(())
+    }
+}

@@ -1,9 +1,9 @@
 use super::key::Key;
 
 pub struct Node {
-    ip: String,
-    port: u16,
-    id: Key,
+    pub ip: String,
+    pub port: u16,
+    pub id: Key,
 }
 
 impl Node {
