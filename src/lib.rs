@@ -14,6 +14,7 @@ mod tests {
     use super::key::Distance;
     use super::key::Key;
     use super::protocol::create_node;
+    use super::routing::NodeAndDistance;
     use super::utils;
 
     #[test]
@@ -45,5 +46,24 @@ mod tests {
             "node0.id: {:?}, node1.id: {:?}, dist: {:?}",
             node0.id, node1.id, dist
         );
+    }
+
+    #[test]
+    fn compare_distance() {
+        let node0 = create_node(utils::get_local_ip().unwrap(), 1337);
+        let node1 = create_node(utils::get_local_ip().unwrap(), 1338);
+
+        let dist = Distance::new(&node0.id, &node1.id);
+        let nd0 = NodeAndDistance(node0.clone(), dist.clone());
+        let nd1 = NodeAndDistance(node1.clone(), dist.clone());
+
+        // assert_eq!(nd0, nd1);
+        //      ^^^^^^^^^^^^^^^^^^^^^ `NodeAndDistance` cannot be formatted using `{:?}`
+        let mut are_eq = false;
+        if nd0 == nd1 {
+            are_eq = true;
+        }
+
+        assert_eq!(are_eq, true);
     }
 }
