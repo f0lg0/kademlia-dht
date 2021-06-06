@@ -1,15 +1,37 @@
+use super::key::Distance;
 use super::node::Node;
 use super::K_PARAM;
 use super::N_BUCKETS;
 
+#[derive(Debug)]
+pub struct NodeAndDistance(pub Node, pub Distance);
+
+#[derive(Debug)]
 pub struct KBucket {
     nodes: Vec<Node>,
     size: usize,
 }
 
+#[derive(Debug)]
 pub struct RoutingTable<'a> {
     node: &'a Node,
     kbuckets: Vec<KBucket>,
+}
+
+impl PartialEq for NodeAndDistance {
+    fn eq(&self, other: &NodeAndDistance) -> bool {
+        let mut equal = true;
+        let mut i = 0;
+        while equal && i < 32 {
+            if self.1 .0[i] != other.1 .0[i] {
+                equal = false;
+            }
+
+            i += 1;
+        }
+
+        equal
+    }
 }
 
 impl KBucket {
