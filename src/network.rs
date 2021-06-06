@@ -1,5 +1,7 @@
 use super::key::Key;
 use super::node::*;
+use super::routing::FindValueResult;
+use super::routing::NodeAndDistance;
 
 enum Request {
     Ping,
@@ -8,11 +10,10 @@ enum Request {
     FindValue(String),
 }
 
-// TODO: attach correct return data to fields
 enum Response {
     Ping,
-    FindNode,
-    FindValue,
+    FindNode(Vec<NodeAndDistance>),
+    FindValue(FindValueResult),
 }
 
 enum Message {
@@ -21,10 +22,10 @@ enum Message {
     Response(Response),
 }
 
-struct RpcMessage<'a> {
+struct RpcMessage {
     token: Key,
-    src: &'a Node,
-    dst: &'a Node,
+    src: Node,
+    dst: Node,
     msg: Message,
 }
 

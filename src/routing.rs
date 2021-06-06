@@ -7,6 +7,9 @@ use super::N_BUCKETS;
 pub struct NodeAndDistance(pub Node, pub Distance);
 
 #[derive(Debug)]
+pub struct FindValueResult(Option<Node>, Option<String>);
+
+#[derive(Debug)]
 pub struct KBucket {
     nodes: Vec<Node>,
     size: usize,
