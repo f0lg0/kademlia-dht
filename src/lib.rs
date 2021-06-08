@@ -8,11 +8,13 @@ pub mod utils;
 const N_BUCKETS: usize = 20;
 const K_PARAM: usize = 8;
 const KEY_LEN: usize = 32;
+const BUF_SIZE: usize = 4096;
 
 #[cfg(test)]
 mod tests {
     use super::key::Distance;
     use super::key::Key;
+    use super::network::*;
     use super::protocol::create_node;
     use super::routing::NodeAndDistance;
     use super::utils;
@@ -65,5 +67,17 @@ mod tests {
         }
 
         assert_eq!(are_eq, true);
+    }
+
+    #[test]
+    fn open_rpc() {
+        let node0 = create_node(utils::get_local_ip().unwrap(), 1337);
+        let node1 = create_node(utils::get_local_ip().unwrap(), 1338);
+
+        let rpc0 = Rpc::new(node0.clone(), node1.clone());
+        let rpc1 = Rpc::new(node1.clone(), node0.clone());
+
+        Rpc::open(rpc0.clone());
+        Rpc::open(rpc1.clone());
     }
 }
