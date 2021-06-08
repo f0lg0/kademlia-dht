@@ -20,4 +20,8 @@ impl Node {
 
         format!("{}:{}:{}", self.ip, self.port, parsed_id)
     }
+
+    pub fn get_addr(&self) -> String {
+        format!("{}:{}", self.ip, self.port)
+    }
 }
