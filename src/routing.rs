@@ -2,11 +2,12 @@ use super::key::Distance;
 use super::node::Node;
 use super::K_PARAM;
 use super::N_BUCKETS;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NodeAndDistance(pub Node, pub Distance);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FindValueResult(Option<Vec<NodeAndDistance>>, Option<String>);
 
 #[derive(Debug)]

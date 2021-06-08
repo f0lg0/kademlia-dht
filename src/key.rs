@@ -1,8 +1,9 @@
 use super::KEY_LEN;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt::{Debug, Error, Formatter};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Key(pub [u8; KEY_LEN]);
 
 impl Key {
@@ -31,7 +32,7 @@ impl Debug for Key {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Distance(pub [u8; KEY_LEN]);
 
 impl Distance {
