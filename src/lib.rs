@@ -19,6 +19,8 @@ mod tests {
     use super::routing::NodeAndDistance;
     use super::utils;
 
+    use std::{thread, time};
+
     #[test]
     fn create_key() {
         let input_str = String::from("test_string");
@@ -70,14 +72,25 @@ mod tests {
     }
 
     #[test]
-    fn open_rpc() {
+    fn send_rpc_msg() {
         let node0 = create_node(utils::get_local_ip().unwrap(), 1337);
         let node1 = create_node(utils::get_local_ip().unwrap(), 1338);
 
-        let rpc0 = Rpc::new(node0.clone(), node1.clone());
-        let rpc1 = Rpc::new(node1.clone(), node0.clone());
+        let rpc0 = Rpc::new(node0.clone());
+        let rpc1 = Rpc::new(node1.clone());
 
         Rpc::open(rpc0.clone());
         Rpc::open(rpc1.clone());
+
+        let msg = RpcMessage {
+            token: Key::new(String::from("test")),
+            src: node0.get_addr(),
+            dst: node1.get_addr(),
+            msg: Message::Abort,
+        };
+
+        rpc0.send_msg(&msg, &node1.get_addr());
+
+        thread::sleep(time::Duration::from_secs(1));
     }
 }
