@@ -104,7 +104,14 @@ mod tests {
 
     #[test]
     fn start_protocol() {
-        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1337);
+        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1339);
         println!("[+] Started Kademlia interface: {:?}", interface);
+    }
+
+    #[test]
+    fn dump_interface() {
+        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1400);
+        utils::dump_interface_state(&interface, "dumps/interface.json");
+        println!("[*] Dumped interface to file [*]");
     }
 }
