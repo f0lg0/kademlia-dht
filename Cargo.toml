@@ -1,5 +1,5 @@
 [package]
-name = "kademlia-dht"
+name = "kademlia_dht"
 version = "0.1.0"
 authors = ["f0lg0 <folgonileonardo@gmail.com>"]
 edition = "2018"
