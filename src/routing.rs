@@ -39,7 +39,7 @@ impl PartialEq for NodeAndDistance {
 }
 
 impl KBucket {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
             size: K_PARAM,
@@ -48,7 +48,7 @@ impl KBucket {
 }
 
 impl<'a> RoutingTable<'a> {
-    fn new(node: &'a Node) -> Self {
+    pub fn new(node: &'a Node) -> Self {
         let mut kbuckets: Vec<KBucket> = Vec::new();
         for _ in 0..N_BUCKETS {
             kbuckets.push(KBucket::new());
