@@ -17,8 +17,8 @@ pub struct KBucket {
 }
 
 #[derive(Debug)]
-pub struct RoutingTable<'a> {
-    node: &'a Node,
+pub struct RoutingTable {
+    node: Node,
     kbuckets: Vec<KBucket>,
 }
 
@@ -47,8 +47,8 @@ impl KBucket {
     }
 }
 
-impl<'a> RoutingTable<'a> {
-    pub fn new(node: &'a Node) -> Self {
+impl RoutingTable {
+    pub fn new(node: Node) -> Self {
         let mut kbuckets: Vec<KBucket> = Vec::new();
         for _ in 0..N_BUCKETS {
             kbuckets.push(KBucket::new());
