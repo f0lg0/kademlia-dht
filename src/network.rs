@@ -37,10 +37,10 @@ pub enum Message {
 
 #[derive(Serialize, Deserialize)]
 pub struct RpcMessage {
-    token: Key,
-    src: String,
-    dst: String,
-    msg: Message,
+    pub token: Key,
+    pub src: String,
+    pub dst: String,
+    pub msg: Message,
 }
 
 #[derive(Clone)]
@@ -51,7 +51,7 @@ pub struct Rpc {
 }
 
 impl Rpc {
-    pub fn new(node: Node, dst: Node) -> Self {
+    pub fn new(node: Node) -> Self {
         let socket = UdpSocket::bind(node.get_addr())
             .expect("Rpc::new --> Error while binding UdpSocket to specified addr");
 
@@ -66,7 +66,7 @@ impl Rpc {
             let mut buf = [0u8; BUF_SIZE];
 
             loop {
-                println!("[*] Listening...");
+                println!("[*] Listening on {:?}", rpc.socket);
 
                 let (len, src_addr) = rpc
                     .socket
@@ -83,16 +83,29 @@ impl Rpc {
 
                 decoded.src = src_addr.to_string();
 
-                println!("[+] Received packet: {:?}", decoded.msg);
+                println!(
+                    "----------\n[+] Received packet: {:?}\n\ttoken: {:?}\n\tsrc: {}\n\tdst: {}\n\tmsg: {:?}\n----------",
+                    decoded.msg, decoded.token, decoded.src, decoded.dst, decoded.msg
+                );
 
                 match decoded.msg {
                     Message::Abort => {
                         break;
                     }
-                    _ => (),
+                    _ => println!("[!] Ignoring packet"),
                 }
             }
         });
+    }
+
+    pub fn send_msg(&self, msg: &RpcMessage, to: &str) {
+        let encoded =
+            serde_json::to_string(msg).expect("Rpc::send_msg --> Unable to serialize message");
+        self.socket
+            .send_to(&encoded.as_bytes(), to)
+            .expect("Rpc::send_msg --> Error while sending message to specified address");
+
+        println!("[+] Sending packet: {:?}", encoded);
     }
 }
 
