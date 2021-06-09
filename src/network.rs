@@ -43,7 +43,7 @@ pub struct RpcMessage {
     pub msg: Message,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Rpc {
     socket: Arc<UdpSocket>,
     pending: Arc<Mutex<HashMap<Key, Sender<Option<Response>>>>>,
@@ -84,15 +84,27 @@ impl Rpc {
                 decoded.src = src_addr.to_string();
 
                 println!(
-                    "----------\n[+] Received packet: {:?}\n\ttoken: {:?}\n\tsrc: {}\n\tdst: {}\n\tmsg: {:?}\n----------",
+                    "----------\n[+] Received message: {:?}\n\ttoken: {:?}\n\tsrc: {}\n\tdst: {}\n\tmsg: {:?}\n----------",
                     decoded.msg, decoded.token, decoded.src, decoded.dst, decoded.msg
                 );
+
+                if decoded.dst != rpc.node.get_addr() {
+                    println!("[!] Destination address doesn't match node address, ignoring [!]");
+                    continue;
+                }
 
                 match decoded.msg {
                     Message::Abort => {
                         break;
                     }
-                    _ => println!("[!] Ignoring packet"),
+                    Message::Request(req) => {
+                        println!("Request content: {:?}", req);
+                        // TODO: send thru channel
+                    }
+                    Message::Response(rep) => {
+                        println!("Response content: {:?}", rep);
+                    }
+                    _ => println!("[!] Ignoring message"),
                 }
             }
         });
@@ -105,7 +117,7 @@ impl Rpc {
             .send_to(&encoded.as_bytes(), to)
             .expect("Rpc::send_msg --> Error while sending message to specified address");
 
-        println!("[+] Sending packet: {:?}", encoded);
+        println!("[+] Sending message: {:?}", encoded);
     }
 }
 
