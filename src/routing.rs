@@ -12,14 +12,14 @@ pub struct FindValueResult(Option<Vec<NodeAndDistance>>, Option<String>);
 
 #[derive(Debug)]
 pub struct KBucket {
-    nodes: Vec<Node>,
-    size: usize,
+    pub nodes: Vec<Node>,
+    pub size: usize,
 }
 
 #[derive(Debug)]
 pub struct RoutingTable {
-    node: Node,
-    kbuckets: Vec<KBucket>,
+    pub node: Node,
+    pub kbuckets: Vec<KBucket>,
 }
 
 impl PartialEq for NodeAndDistance {

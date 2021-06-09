@@ -45,9 +45,9 @@ pub struct RpcMessage {
 
 #[derive(Clone, Debug)]
 pub struct Rpc {
-    socket: Arc<UdpSocket>,
-    pending: Arc<Mutex<HashMap<Key, Sender<Option<Response>>>>>,
-    node: Node,
+    pub socket: Arc<UdpSocket>,
+    pub pending: Arc<Mutex<HashMap<Key, Sender<Option<Response>>>>>,
+    pub node: Node,
 }
 
 impl Rpc {

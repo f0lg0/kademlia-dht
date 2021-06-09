@@ -7,10 +7,10 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 pub struct Protocol {
-    routes: Arc<Mutex<RoutingTable>>,
-    store: Arc<Mutex<HashMap<String, String>>>,
-    rpc: Arc<Rpc>,
-    node: Node,
+    pub routes: Arc<Mutex<RoutingTable>>,
+    pub store: Arc<Mutex<HashMap<String, String>>>,
+    pub rpc: Arc<Rpc>,
+    pub node: Node,
 }
 
 impl Protocol {
