@@ -15,7 +15,8 @@ mod tests {
     use super::key::Distance;
     use super::key::Key;
     use super::network::*;
-    use super::protocol::create_node;
+    use super::node::Node;
+    use super::protocol::Protocol;
     use super::routing::NodeAndDistance;
     use super::utils;
 
@@ -28,8 +29,8 @@ mod tests {
         println!("test_string: {:?}", k);
     }
     #[test]
-    fn create_kademlia_node() {
-        let node = create_node(utils::get_local_ip().unwrap(), 1337);
+    fn create_node() {
+        let node = Node::new(utils::get_local_ip().unwrap(), 1337);
         let node_info = node.get_info();
 
         println!("node: {}", node_info);
@@ -42,8 +43,8 @@ mod tests {
 
     #[test]
     fn distance_between_nodes() {
-        let node0 = create_node(utils::get_local_ip().unwrap(), 1337);
-        let node1 = create_node(utils::get_local_ip().unwrap(), 1338);
+        let node0 = Node::new(utils::get_local_ip().unwrap(), 1337);
+        let node1 = Node::new(utils::get_local_ip().unwrap(), 1338);
 
         let dist = Distance::new(&node0.id, &node1.id);
         println!(
@@ -54,8 +55,8 @@ mod tests {
 
     #[test]
     fn compare_distance() {
-        let node0 = create_node(utils::get_local_ip().unwrap(), 1337);
-        let node1 = create_node(utils::get_local_ip().unwrap(), 1338);
+        let node0 = Node::new(utils::get_local_ip().unwrap(), 1337);
+        let node1 = Node::new(utils::get_local_ip().unwrap(), 1338);
 
         let dist = Distance::new(&node0.id, &node1.id);
         let nd0 = NodeAndDistance(node0.clone(), dist.clone());
@@ -73,8 +74,8 @@ mod tests {
 
     #[test]
     fn send_rpc_msg() {
-        let node0 = create_node(utils::get_local_ip().unwrap(), 1337);
-        let node1 = create_node(utils::get_local_ip().unwrap(), 1338);
+        let node0 = Node::new(utils::get_local_ip().unwrap(), 1337);
+        let node1 = Node::new(utils::get_local_ip().unwrap(), 1338);
 
         let rpc0 = Rpc::new(node0.clone());
         let rpc1 = Rpc::new(node1.clone());
@@ -82,15 +83,28 @@ mod tests {
         Rpc::open(rpc0.clone());
         Rpc::open(rpc1.clone());
 
-        let msg = RpcMessage {
-            token: Key::new(String::from("test")),
+        let msg0 = RpcMessage {
+            token: Key::new(String::from("Hello node1")),
             src: node0.get_addr(),
             dst: node1.get_addr(),
             msg: Message::Abort,
         };
+        let msg1 = RpcMessage {
+            token: Key::new(String::from("Hello node0")),
+            src: node1.get_addr(),
+            dst: node0.get_addr(),
+            msg: Message::Abort,
+        };
 
-        rpc0.send_msg(&msg, &node1.get_addr());
+        rpc0.send_msg(&msg0, &node1.get_addr());
+        rpc1.send_msg(&msg1, &node0.get_addr());
 
         thread::sleep(time::Duration::from_secs(1));
+    }
+
+    #[test]
+    fn start_protocol() {
+        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1337);
+        println!("[+] Started Kademlia interface: {:?}", interface);
     }
 }
