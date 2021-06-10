@@ -14,7 +14,6 @@ const BUF_SIZE: usize = 4096;
 mod tests {
     use super::key::Distance;
     use super::key::Key;
-    use super::network::*;
     use super::node::Node;
     use super::protocol::Protocol;
     use super::routing::NodeAndDistance;
@@ -73,44 +72,19 @@ mod tests {
     }
 
     #[test]
-    fn send_rpc_msg() {
-        let node0 = Node::new(utils::get_local_ip().unwrap(), 1337);
-        let node1 = Node::new(utils::get_local_ip().unwrap(), 1338);
+    fn start_protocol() {
+        let interface0 = Protocol::new(utils::get_local_ip().unwrap(), 1339);
+        let interface1 = Protocol::new(utils::get_local_ip().unwrap(), 1400);
 
-        let rpc0 = Rpc::new(node0.clone());
-        let rpc1 = Rpc::new(node1.clone());
-
-        Rpc::open(rpc0.clone());
-        Rpc::open(rpc1.clone());
-
-        let msg0 = RpcMessage {
-            token: Key::new(String::from("Hello node1")),
-            src: node0.get_addr(),
-            dst: node1.get_addr(),
-            msg: Message::Abort,
-        };
-        let msg1 = RpcMessage {
-            token: Key::new(String::from("Hello node0")),
-            src: node1.get_addr(),
-            dst: node0.get_addr(),
-            msg: Message::Abort,
-        };
-
-        rpc0.send_msg(&msg0, &node1.get_addr());
-        rpc1.send_msg(&msg1, &node0.get_addr());
+        interface0.ping(interface1.node.clone());
+        interface1.ping(interface0.node.clone());
 
         thread::sleep(time::Duration::from_secs(1));
     }
 
     #[test]
-    fn start_protocol() {
-        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1339);
-        println!("[+] Started Kademlia interface: {:?}", interface);
-    }
-
-    #[test]
     fn dump_interface() {
-        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1400);
+        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1401);
         utils::dump_interface_state(&interface, "dumps/interface.json");
         println!("[*] Dumped interface to file [*]");
     }
