@@ -9,7 +9,7 @@ use super::BUF_SIZE;
 use std::collections::HashMap;
 use std::net::UdpSocket;
 use std::str;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -61,13 +61,13 @@ impl Rpc {
             node,
         }
     }
-    pub fn open(rpc: Rpc) {
+    pub fn open(rpc: Rpc, sender: Sender<Request>) {
+        println!("[*] Listening on {:?}", rpc.socket);
+
         thread::spawn(move || {
             let mut buf = [0u8; BUF_SIZE];
 
             loop {
-                println!("[*] Listening on {:?}", rpc.socket);
-
                 let (len, src_addr) = rpc
                     .socket
                     .recv_from(&mut buf)
@@ -99,12 +99,14 @@ impl Rpc {
                     }
                     Message::Request(req) => {
                         println!("Request content: {:?}", req);
-                        // TODO: send thru channel
+                        if let Err(_) = sender.send(req) {
+                            println!("Rpc::open, Request --> Receiver is dead, closing channel.");
+                            break;
+                        }
                     }
                     Message::Response(rep) => {
                         println!("Response content: {:?}", rep);
                     }
-                    _ => println!("[!] Ignoring message"),
                 }
             }
         });
