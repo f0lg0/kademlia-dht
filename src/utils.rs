@@ -1,5 +1,5 @@
 use super::protocol::Protocol;
-use std::fs::create_dir;
+use std::fs::create_dir_all;
 use std::io::Write;
 use std::net::UdpSocket;
 
@@ -21,7 +21,7 @@ pub fn get_local_ip() -> Option<String> {
 }
 
 pub fn dump_interface_state(interface: &Protocol, path: &str) {
-    create_dir("dumps").expect("utils::dump_interface_state --> Unable to create dumps dir");
+    create_dir_all("dumps").expect("utils::dump_interface_state --> Unable to create dumps dir");
 
     let rt = interface.routes.lock().unwrap();
     let st = interface.store.lock().unwrap();
