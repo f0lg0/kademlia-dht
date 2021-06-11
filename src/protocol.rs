@@ -41,7 +41,7 @@ impl Protocol {
         node
     }
 
-    fn requests_handler(self, receiver: mpsc::Receiver<network::Request>) {
+    fn requests_handler(self, receiver: mpsc::Receiver<network::ReqWrapper>) {
         println!(
             "[*] Protocol::requests_handler --> Starting Requests Handler for receiver: {} [*]",
             self.node.get_addr()
@@ -62,29 +62,31 @@ impl Protocol {
         });
     }
 
-    fn craft_res(&self, req: network::Request) -> network::Response {
+    fn craft_res(&self, req: network::ReqWrapper) -> (network::Response, String) {
         println!(
             "\t[VERBOSE] Protocol::requests_handler --> Parsing: {:?}",
             req
         );
 
-        match req {
-            network::Request::Ping => network::Response::Ping,
-            network::Request::Store(_, _) => network::Response::Ping,
-            network::Request::FindNode(_) => network::Response::Ping,
-            network::Request::FindValue(_) => network::Response::Ping,
+        match req.payload {
+            network::Request::Ping => (network::Response::Ping, req.src),
+            network::Request::Store(_, _) => (network::Response::Ping, req.src),
+            network::Request::FindNode(_) => (network::Response::Ping, req.src),
+            network::Request::FindValue(_) => (network::Response::Ping, req.src),
         }
     }
 
-    fn reply(&self, res: network::Response) {
-        println!("\t[VERBOSE] Replying with {:?}", res);
-        // ! WE MUST KNOW THE DST FROM THE CHANNEL RECEIVER, RIGHT NOW WE WAIT JUST FOR THE REQUEST TYPE WHICH DOESNT SPECIFY THE DST
-        // let msg = network::RpcMessage {
-        //     token: key::Key::new(String::from("pong")),
-        //     src: self.node.get_addr(),
-        //     dst: _,
-        //     msg: network::Message::Request(network::Request::Ping),
-        // }
+    fn reply(&self, res: (network::Response, String)) {
+        println!("\t[VERBOSE] Replying with {:?} to {}", res.0, res.1);
+
+        let msg = network::RpcMessage {
+            token: key::Key::new(String::from("pong")),
+            src: self.node.get_addr(),
+            dst: res.1,
+            msg: network::Message::Request(network::Request::Ping),
+        };
+
+        self.rpc.send_msg(&msg);
     }
 
     pub fn ping(&self, dst: Node) {
@@ -94,7 +96,7 @@ impl Protocol {
             dst: dst.get_addr(),
             msg: network::Message::Request(network::Request::Ping),
         };
-        self.rpc.send_msg(&msg, &dst.get_addr());
+        self.rpc.send_msg(&msg);
         println!(
             "[+] Protocol::ping --> Ping from {} to {} with token {:?} was sent!",
             msg.src, msg.dst, msg.token
