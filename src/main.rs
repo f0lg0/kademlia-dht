@@ -8,7 +8,6 @@ fn main() {
 	let interface1 = Protocol::new(utils::get_local_ip().unwrap(), 1338);
 
 	interface0.ping(interface1.node.clone());
-	interface0.ping(interface1.node.clone());
 	interface1.ping(interface0.node.clone());
 
 	thread::sleep(time::Duration::from_secs(3));
