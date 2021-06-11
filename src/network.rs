@@ -62,7 +62,7 @@ impl Rpc {
         }
     }
     pub fn open(rpc: Rpc, sender: Sender<Request>) {
-        println!("[*] Listening on {:?}", rpc.socket);
+        println!("[*] Network::open --> Listening on {:?}", rpc.socket);
 
         thread::spawn(move || {
             let mut buf = [0u8; BUF_SIZE];
@@ -119,11 +119,9 @@ impl Rpc {
             .send_to(&encoded.as_bytes(), to)
             .expect("Rpc::send_msg --> Error while sending message to specified address");
 
-        println!("[+] Sending message: {:?}", encoded);
+        println!(
+            "[+] Network::send_msg --> From: {}, To: {}, Token: {:?}",
+            msg.src, msg.dst, msg.token
+        );
     }
 }
-
-// pub fn ping() {}
-// pub fn store() {}
-// pub fn find_node() {}
-// pub fn find_value() {}
