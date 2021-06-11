@@ -19,11 +19,15 @@ impl Protocol {
     // TODO: missing bootstrap node
     pub fn new(ip: String, port: u16) -> Self {
         let node = Node::new(ip, port);
+        println!("[VERBOSE] Protocol::new --> Node created");
+
         let routes = RoutingTable::new(node.clone());
+        println!("[VERBOSE] Protocol::new --> Routes created");
 
         let (sender, receiver) = mpsc::channel();
         let rpc = network::Rpc::new(node.clone());
         network::Rpc::open(rpc.clone(), sender);
+        println!("[VERBOSE] Protocol::new --> RPC created");
 
         let node = Self {
             routes: Arc::new(Mutex::new(routes)),
@@ -40,15 +44,30 @@ impl Protocol {
     fn requests_handler(self, receiver: mpsc::Receiver<network::Request>) {
         // TODO: return response
 
+        println!(
+            "[*] Protocol::requests_handler --> Starting Requests Handler for receiver: {} [*]",
+            self.node.get_addr()
+        );
         std::thread::spawn(move || {
-            println!(
-                "*** {} Requests Handler got: {:?}",
-                self.node.get_info(),
-                receiver
-                    .recv()
-                    .expect("request_handler --> Errors while receiving from channel sender")
-            );
+            for req in receiver.iter() {
+                let node = self.clone();
+
+                println!(
+                    "[VERBOSE] Protocol::requests_handler --> Spawning thread to handle {:?}",
+                    &req
+                );
+                std::thread::spawn(move || {
+                    node.parse_req(req);
+                });
+            }
         });
+    }
+
+    fn parse_req(&self, req: network::Request) {
+        println!(
+            "\t[VERBOSE] Protocol::requests_handler --> Parsing: {:?}",
+            req
+        );
     }
 
     pub fn ping(&self, dst: Node) {
@@ -59,6 +78,9 @@ impl Protocol {
             msg: network::Message::Request(network::Request::Ping),
         };
         self.rpc.send_msg(&msg, &dst.get_addr());
-        println!("[+] Protocol::ping --> Ping message sent!")
+        println!(
+            "[+] Protocol::ping --> Ping from {} to {} with token {:?} was sent!",
+            msg.src, msg.dst, msg.token
+        );
     }
 }
