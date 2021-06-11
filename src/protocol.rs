@@ -42,8 +42,6 @@ impl Protocol {
     }
 
     fn requests_handler(self, receiver: mpsc::Receiver<network::Request>) {
-        // TODO: return response
-
         println!(
             "[*] Protocol::requests_handler --> Starting Requests Handler for receiver: {} [*]",
             self.node.get_addr()
@@ -57,22 +55,41 @@ impl Protocol {
                     &req
                 );
                 std::thread::spawn(move || {
-                    node.parse_req(req);
+                    let res = node.craft_res(req);
+                    node.reply(res);
                 });
             }
         });
     }
 
-    fn parse_req(&self, req: network::Request) {
+    fn craft_res(&self, req: network::Request) -> network::Response {
         println!(
             "\t[VERBOSE] Protocol::requests_handler --> Parsing: {:?}",
             req
         );
+
+        match req {
+            network::Request::Ping => network::Response::Ping,
+            network::Request::Store(_, _) => network::Response::Ping,
+            network::Request::FindNode(_) => network::Response::Ping,
+            network::Request::FindValue(_) => network::Response::Ping,
+        }
+    }
+
+    fn reply(&self, res: network::Response) {
+        println!("\t[VERBOSE] Replying with {:?}", res);
+        // ! WE MUST KNOW THE DST FROM THE CHANNEL RECEIVER, RIGHT NOW WE WAIT JUST FOR THE REQUEST TYPE WHICH DOESNT SPECIFY THE DST
+        // let msg = network::RpcMessage {
+        //     token: key::Key::new(String::from("pong")),
+        //     src: self.node.get_addr(),
+        //     dst: _,
+        //     msg: network::Message::Request(network::Request::Ping),
+        // }
     }
 
     pub fn ping(&self, dst: Node) {
         let msg = network::RpcMessage {
-            token: key::Key::new(String::from("Hello node1")),
+            token: key::Key::new(String::from("ping")),
             src: self.node.get_addr(),
             dst: dst.get_addr(),
             msg: network::Message::Request(network::Request::Ping),
