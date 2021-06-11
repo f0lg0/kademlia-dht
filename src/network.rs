@@ -35,12 +35,19 @@ pub enum Message {
     Response(Response),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct RpcMessage {
     pub token: Key,
     pub src: String,
     pub dst: String,
     pub msg: Message,
+}
+
+#[derive(Debug)]
+pub struct ReqWrapper {
+    pub token: Key,
+    pub src: String,
+    pub payload: Request,
 }
 
 #[derive(Clone, Debug)]
@@ -61,7 +68,7 @@ impl Rpc {
             node,
         }
     }
-    pub fn open(rpc: Rpc, sender: Sender<Request>) {
+    pub fn open(rpc: Rpc, sender: Sender<ReqWrapper>) {
         println!("[*] Network::open --> Listening on {:?}", rpc.socket);
 
         thread::spawn(move || {
@@ -99,7 +106,13 @@ impl Rpc {
                     }
                     Message::Request(req) => {
                         println!("Request content: {:?}", req);
-                        if let Err(_) = sender.send(req) {
+                        let wrapped_req = ReqWrapper {
+                            token: decoded.token,
+                            src: decoded.src,
+                            payload: req,
+                        };
+
+                        if let Err(_) = sender.send(wrapped_req) {
                             println!("Rpc::open, Request --> Receiver is dead, closing channel.");
                             break;
                         }
@@ -112,11 +125,11 @@ impl Rpc {
         });
     }
 
-    pub fn send_msg(&self, msg: &RpcMessage, to: &str) {
+    pub fn send_msg(&self, msg: &RpcMessage) {
         let encoded =
             serde_json::to_string(msg).expect("Rpc::send_msg --> Unable to serialize message");
         self.socket
-            .send_to(&encoded.as_bytes(), to)
+            .send_to(&encoded.as_bytes(), &msg.dst)
             .expect("Rpc::send_msg --> Error while sending message to specified address");
 
         println!(
