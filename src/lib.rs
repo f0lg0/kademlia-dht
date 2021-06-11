@@ -77,9 +77,10 @@ mod tests {
         let interface1 = Protocol::new(utils::get_local_ip().unwrap(), 1400);
 
         interface0.ping(interface1.node.clone());
+        interface0.ping(interface1.node.clone());
         interface1.ping(interface0.node.clone());
 
-        thread::sleep(time::Duration::from_secs(1));
+        thread::sleep(time::Duration::from_secs(3));
     }
 
     #[test]
