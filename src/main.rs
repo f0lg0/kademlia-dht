@@ -10,5 +10,5 @@ fn main() {
 	interface0.ping(interface1.node.clone());
 	interface1.ping(interface0.node.clone());
 
-	thread::sleep(time::Duration::from_secs(3));
+	thread::sleep(time::Duration::from_secs(1));
 }

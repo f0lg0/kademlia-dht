@@ -5,9 +5,17 @@ pub mod protocol;
 pub mod routing;
 pub mod utils;
 
-const N_BUCKETS: usize = 20;
-const K_PARAM: usize = 8;
+// 256 bits --> 32 bytes
 const KEY_LEN: usize = 32;
+
+// a list for each bit of the node ID
+// 32*8 --> 256
+const N_BUCKETS: usize = KEY_LEN * 8;
+
+// number entries in a list
+const K_PARAM: usize = 20;
+
+// buffer size used for streaming UDP
 const BUF_SIZE: usize = 4096;
 
 #[cfg(test)]
