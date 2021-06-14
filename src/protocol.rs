@@ -16,12 +16,11 @@ pub struct Protocol {
 }
 
 impl Protocol {
-    // TODO: missing bootstrap node
-    pub fn new(ip: String, port: u16) -> Self {
+    pub fn new(ip: String, port: u16, bootstrap: Option<Node>) -> Self {
         let node = Node::new(ip, port);
         println!("[VERBOSE] Protocol::new --> Node created");
 
-        let routes = RoutingTable::new(node.clone());
+        let routes = RoutingTable::new(node.clone(), bootstrap);
         println!("[VERBOSE] Protocol::new --> Routes created");
 
         let (sender, receiver) = mpsc::channel();

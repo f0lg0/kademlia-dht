@@ -24,7 +24,7 @@ mod tests {
     use super::key::Key;
     use super::node::Node;
     use super::protocol::Protocol;
-    use super::routing::NodeAndDistance;
+    use super::routing::{NodeAndDistance, RoutingTable};
     use super::utils;
 
     use std::{thread, time};
@@ -80,9 +80,22 @@ mod tests {
     }
 
     #[test]
+    fn routing_table_init() {
+        let node0 = Node::new(utils::get_local_ip().unwrap(), 1337);
+        let node1 = Node::new(utils::get_local_ip().unwrap(), 1338);
+
+        // first ever node to join the net
+        let rt0 = RoutingTable::new(node0.clone(), None);
+        let rt1 = RoutingTable::new(node1, Some(node0));
+
+        println!("[DEBUG] rt0: {:?}", rt0);
+        println!("[DEBUG] rt1: {:?}", rt1);
+    }
+
+    #[test]
     fn start_protocol() {
-        let interface0 = Protocol::new(utils::get_local_ip().unwrap(), 1339);
-        let interface1 = Protocol::new(utils::get_local_ip().unwrap(), 1400);
+        let interface0 = Protocol::new(utils::get_local_ip().unwrap(), 1339, None);
+        let interface1 = Protocol::new(utils::get_local_ip().unwrap(), 1340, None);
 
         interface0.ping(interface1.node.clone());
         interface0.ping(interface1.node.clone());
@@ -93,7 +106,7 @@ mod tests {
 
     #[test]
     fn dump_interface() {
-        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1401);
+        let interface = Protocol::new(utils::get_local_ip().unwrap(), 1401, None);
         utils::dump_interface_state(&interface, "dumps/interface.json");
         println!("[*] Dumped interface to file [*]");
     }

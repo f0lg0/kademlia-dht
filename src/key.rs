@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt::{Debug, Error, Formatter};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Key(pub [u8; KEY_LEN]);
 
 impl Key {
@@ -32,7 +32,7 @@ impl Debug for Key {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Distance(pub [u8; KEY_LEN]);
 
 impl Distance {
@@ -43,5 +43,26 @@ impl Distance {
         }
 
         Self(ret)
+    }
+
+    // TODO: look better into this
+    pub fn zeroes_in_prefix(&self) -> usize {
+        for i in 0..KEY_LEN {
+            for j in 8usize..0 {
+                if (self.0[i] >> (7 - j)) & 0x1 != 0 {
+                    return i * 8 + j;
+                }
+            }
+        }
+        KEY_LEN * 8 - 1
+    }
+}
+
+impl Debug for Distance {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        for x in &self.0 {
+            write!(f, "{:X}", x).expect("Failed to format contents of Key");
+        }
+        Ok(())
     }
 }
