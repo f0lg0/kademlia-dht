@@ -18,6 +18,9 @@ const K_PARAM: usize = 20;
 // buffer size used for streaming UDP
 const BUF_SIZE: usize = 4096;
 
+// response timeout 5000ms
+const TIMEOUT: u64 = 5000;
+
 #[cfg(test)]
 mod tests {
     use super::key::Distance;
