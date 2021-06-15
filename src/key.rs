@@ -44,18 +44,6 @@ impl Distance {
 
         Self(ret)
     }
-
-    // TODO: look better into this
-    pub fn zeroes_in_prefix(&self) -> usize {
-        for i in 0..KEY_LEN {
-            for j in 8usize..0 {
-                if (self.0[i] >> (7 - j)) & 0x1 != 0 {
-                    return i * 8 + j;
-                }
-            }
-        }
-        KEY_LEN * 8 - 1
-    }
 }
 
 impl Debug for Distance {
