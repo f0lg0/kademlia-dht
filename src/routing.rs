@@ -87,7 +87,7 @@ impl RoutingTable {
             Some(i) => {
                 println!(
                     "[VERBOSE] Routing::update --> Found exact index for node: {}, removing and inserting...",
-                    i
+                    &i
                 );
                 let _ = bucket.nodes.remove(i);
                 bucket.nodes.push(node);
