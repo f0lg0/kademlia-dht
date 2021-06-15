@@ -69,14 +69,7 @@ mod tests {
         let nd0 = NodeAndDistance(node0.clone(), dist.clone());
         let nd1 = NodeAndDistance(node1.clone(), dist.clone());
 
-        // assert_eq!(nd0, nd1);
-        //      ^^^^^^^^^^^^^^^^^^^^^ `NodeAndDistance` cannot be formatted using `{:?}`
-        let mut are_eq = false;
-        if nd0 == nd1 {
-            are_eq = true;
-        }
-
-        assert_eq!(are_eq, true);
+        assert_eq!(nd0, nd1);
     }
 
     #[test]
@@ -94,14 +87,18 @@ mod tests {
 
     #[test]
     fn start_protocol() {
+        let root_node = Node::new(utils::get_local_ip().unwrap(), 1339);
+
         let interface0 = Protocol::new(utils::get_local_ip().unwrap(), 1339, None);
-        let interface1 = Protocol::new(utils::get_local_ip().unwrap(), 1340, None);
+        let interface1 = Protocol::new(utils::get_local_ip().unwrap(), 1340, Some(root_node));
 
         interface0.ping(interface1.node.clone());
         interface0.ping(interface1.node.clone());
         interface1.ping(interface0.node.clone());
 
         thread::sleep(time::Duration::from_secs(3));
+        utils::dump_interface_state(&interface0, "dumps/interface0.json");
+        utils::dump_interface_state(&interface1, "dumps/interface1.json");
     }
 
     #[test]

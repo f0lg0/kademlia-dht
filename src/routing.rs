@@ -89,9 +89,17 @@ impl RoutingTable {
                     "[VERBOSE] Routing::update --> Found exact index for node: {}, removing and inserting...",
                     i
                 );
+                let _ = bucket.nodes.remove(i);
+                bucket.nodes.push(node);
             }
             None => {
                 println!("[VERBOSE] Routing::update --> Exact index for node has not been found, we can push no prob");
+                if bucket.nodes.len() < K_PARAM {
+                    bucket.nodes.push(node);
+                } else {
+                    // go through bucket, pinging nodes, replace one
+                    // that doesn't respond.
+                }
             }
         }
     }
