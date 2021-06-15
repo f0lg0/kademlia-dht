@@ -5,11 +5,12 @@ use super::node::*;
 use super::routing::FindValueResult;
 use super::routing::NodeAndDistance;
 use super::BUF_SIZE;
+use super::TIMEOUT;
 
 use std::collections::HashMap;
 use std::net::UdpSocket;
 use std::str;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -53,7 +54,7 @@ pub struct ReqWrapper {
 #[derive(Clone, Debug)]
 pub struct Rpc {
     pub socket: Arc<UdpSocket>,
-    pub pending: Arc<Mutex<HashMap<Key, Sender<Option<Response>>>>>,
+    pub pending: Arc<Mutex<HashMap<Key, mpsc::Sender<Option<Response>>>>>,
     pub node: Node,
 }
 
@@ -68,8 +69,8 @@ impl Rpc {
             node,
         }
     }
-    pub fn open(rpc: Rpc, sender: Sender<ReqWrapper>) {
-        println!("[*] Network::open --> Listening on {:?}", rpc.socket);
+    pub fn open(rpc: Rpc, sender: mpsc::Sender<ReqWrapper>) {
+        println!("[*] Network::open --> Listening on {:?}", &rpc.socket);
 
         thread::spawn(move || {
             let mut buf = [0u8; BUF_SIZE];
@@ -92,7 +93,7 @@ impl Rpc {
 
                 println!(
                     "----------\n[+] Received message: {:?}\n\ttoken: {:?}\n\tsrc: {}\n\tdst: {}\n\tmsg: {:?}\n----------",
-                    decoded.msg, decoded.token, decoded.src, decoded.dst, decoded.msg
+                    &decoded.msg, &decoded.token, &decoded.src, &decoded.dst, &decoded.msg
                 );
 
                 if decoded.dst != rpc.node.get_addr() {
@@ -105,7 +106,7 @@ impl Rpc {
                         break;
                     }
                     Message::Request(req) => {
-                        println!("Request content: {:?}", req);
+                        println!("Request content: {:?}", &req);
                         let wrapped_req = ReqWrapper {
                             token: decoded.token,
                             src: decoded.src,
@@ -134,7 +135,46 @@ impl Rpc {
 
         println!(
             "[+] Network::send_msg --> From: {}, To: {}, Token: {:?}",
-            msg.src, msg.dst, msg.token
+            &msg.src, &msg.dst, &msg.token
         );
+    }
+
+    pub fn make_request(&self, req: Request, dst: Node) -> mpsc::Receiver<Option<Response>> {
+        let (sender, receiver) = mpsc::channel();
+        let mut pending = self
+            .pending
+            .lock()
+            .expect("Failed to acquire mutex on 'Pending' struct");
+
+        let token = Key::new(format!(
+            "{}:{}:{:?}",
+            self.node.get_info(),
+            dst.get_info(),
+            std::time::SystemTime::now()
+        ));
+        pending.insert(token.clone(), sender.clone());
+
+        let msg = RpcMessage {
+            token: token.clone(),
+            src: self.node.get_addr(),
+            dst: dst.get_addr(),
+            msg: Message::Request(req),
+        };
+
+        self.send_msg(&msg);
+
+        let rpc = self.clone();
+        thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_millis(TIMEOUT));
+            if let Ok(_) = sender.send(None) {
+                let mut pending = rpc
+                    .pending
+                    .lock()
+                    .expect("Failed to acquire mutex on 'Pending' struct");
+                pending.remove(&token);
+            }
+        });
+
+        receiver
     }
 }
