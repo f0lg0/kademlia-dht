@@ -43,7 +43,7 @@ impl Protocol {
     fn requests_handler(self, receiver: mpsc::Receiver<network::ReqWrapper>) {
         println!(
             "[*] Protocol::requests_handler --> Starting Requests Handler for receiver: {} [*]",
-            self.node.get_addr()
+            &self.node.get_addr()
         );
         std::thread::spawn(move || {
             for req in receiver.iter() {
@@ -64,7 +64,7 @@ impl Protocol {
     fn craft_res(&self, req: network::ReqWrapper) -> (network::Response, String) {
         println!(
             "\t[VERBOSE] Protocol::requests_handler --> Parsing: {:?}",
-            req
+            &req
         );
 
         match req.payload {
@@ -76,7 +76,7 @@ impl Protocol {
     }
 
     fn reply(&self, res: (network::Response, String)) {
-        println!("\t[VERBOSE] Replying with {:?} to {}", res.0, res.1);
+        println!("\t[VERBOSE] Replying with {:?} to {}", &res.0, &res.1);
 
         let msg = network::RpcMessage {
             token: key::Key::new(String::from("pong")),
@@ -88,17 +88,27 @@ impl Protocol {
         self.rpc.send_msg(&msg);
     }
 
-    pub fn ping(&self, dst: Node) {
-        let msg = network::RpcMessage {
-            token: key::Key::new(String::from("ping")),
-            src: self.node.get_addr(),
-            dst: dst.get_addr(),
-            msg: network::Message::Request(network::Request::Ping),
-        };
-        self.rpc.send_msg(&msg);
-        println!(
-            "[+] Protocol::ping --> Ping from {} to {} with token {:?} was sent!",
-            msg.src, msg.dst, msg.token
-        );
+    pub fn ping(&self, dst: Node) -> bool {
+        println!("[STATUS] Protocol::ping --> Pinging...");
+        let res = self
+            .rpc
+            .make_request(network::Request::Ping, dst.clone())
+            .recv()
+            .expect("Failed to receive data from channel while awaiting Ping response");
+
+        let mut routes = self
+            .routes
+            .lock()
+            .expect("Failed to acquire lock on routes");
+
+        if let Some(network::Response::Ping) = res {
+            println!("[STATUS] Protocol::Ping --> Got Pong");
+            routes.update(dst);
+            true
+        } else {
+            println!("[FAILED] Protocol::Ping --> No response");
+            // TODO: handle no-response from contact
+            false
+        }
     }
 }
