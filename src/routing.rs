@@ -61,11 +61,32 @@ impl RoutingTable {
             kbuckets,
         };
 
+        ret.update(node);
+
         if let Some(bootstrap) = bootstrap {
             ret.update(bootstrap);
         }
 
         ret
+    }
+
+    fn get_lookup_bucket_index(&self, key: &Key) -> usize {
+        // https://stackoverflow.com/questions/2656642/easiest-way-to-find-the-correct-kademlia-bucket
+
+        // given a bucket j, we are guaranteed that
+        //  2^j <= distance(node, contact) < 2^(j+1)
+        // a node with distance d will be put in the k-bucket with index i=⌊logd⌋
+
+        let d = Distance::new(&self.node.id, key);
+        for i in 0..super::KEY_LEN {
+            for j in (0..8).rev() {
+                if (d.0[i] >> (7 - j)) & 0x1 != 0 {
+                    return i * 8 + j;
+                }
+            }
+        }
+
+        super::KEY_LEN * 8 - 1
     }
 
     pub fn update(&mut self, node: Node) {
@@ -89,13 +110,14 @@ impl RoutingTable {
                     "[VERBOSE] Routing::update --> Found exact index for node: {}, removing and inserting...",
                     &i
                 );
-                let _ = bucket.nodes.remove(i);
+                bucket.nodes.remove(i);
                 bucket.nodes.push(node);
             }
             None => {
                 println!("[VERBOSE] Routing::update --> Exact index for node has not been found, we can push no prob");
                 if bucket.nodes.len() < K_PARAM {
                     bucket.nodes.push(node);
+                    println!("[DEBUG] Routing::update --> pushed");
                 } else {
                     // go through bucket, pinging nodes, replace one
                     // that doesn't respond.
@@ -104,22 +126,21 @@ impl RoutingTable {
         }
     }
 
-    fn get_lookup_bucket_index(&self, key: &Key) -> usize {
-        // https://stackoverflow.com/questions/2656642/easiest-way-to-find-the-correct-kademlia-bucket
+    pub fn remove(&mut self, node: &Node) {
+        let bucket_idx = self.get_lookup_bucket_index(&node.id);
 
-        // given a bucket j, we are guaranteed that
-        //  2^j <= distance(node, contact) < 2^(j+1)
-        // a node with distance d will be put in the k-bucket with index i=⌊logd⌋
-
-        let d = Distance::new(&self.node.id, key);
-        for i in 0..super::KEY_LEN {
-            for j in (0..8).rev() {
-                if (d.0[i] >> (7 - j)) & 0x1 != 0 {
-                    return i * 8 + j;
-                }
-            }
+        if let Some(i) = self.kbuckets[bucket_idx]
+            .nodes
+            .iter()
+            .position(|x| x.id == node.id)
+        {
+            self.kbuckets[bucket_idx].nodes.remove(i);
+            println!(
+                "[VERBOSE] Routing::remove --> removed contact with index: {}",
+                i
+            );
+        } else {
+            println!("[WARN] Tried to remove non-existing entry");
         }
-
-        super::KEY_LEN * 8 - 1
     }
 }
