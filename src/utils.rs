@@ -3,6 +3,8 @@ use std::fs::create_dir_all;
 use std::io::Write;
 use std::net::UdpSocket;
 
+use super::routing::KBucket;
+
 pub fn get_local_ip() -> Option<String> {
     let socket = match UdpSocket::bind("0.0.0.0:0") {
         Ok(s) => s,
@@ -23,8 +25,31 @@ pub fn get_local_ip() -> Option<String> {
 pub fn dump_interface_state(interface: &Protocol, path: &str) {
     create_dir_all("dumps").expect("utils::dump_interface_state --> Unable to create dumps dir");
 
-    let rt = interface.routes.lock().unwrap();
-    let st = interface.store.lock().unwrap();
+    let rt = interface
+        .routes
+        .lock()
+        .expect("Failed to acquire mutex on 'Routes' struct");
+    let st = interface
+        .store
+        .lock()
+        .expect("Failed to acquire mutex on 'Store' struct");
+
+    let flattened: Vec<&KBucket> = rt.kbuckets.iter().collect();
+
+    let mut parsed_buckets = vec![];
+    for kb in flattened {
+        for n in &kb.nodes {
+            let kbucket = serde_json::json!({
+                "nodes": {
+                    "ip": n.ip,
+                    "port": n.port,
+                    "id": format!("{:?}", interface.node.id),
+                },
+                "size": kb.size,
+            });
+            parsed_buckets.push(kbucket);
+        }
+    }
 
     let json = serde_json::json!({
         "node": {
@@ -33,14 +58,22 @@ pub fn dump_interface_state(interface: &Protocol, path: &str) {
             "id": format!("{:?}", interface.node.id),
         },
         "routes": {
-            "node": *rt.node.get_info(),
-            "kbuckets": format!("{:?}", *rt),
+            "node": {
+                "ip": rt.node.ip,
+                "port": rt.node.port,
+                "id": format!("{:?}", interface.node.id),
+            },
+            "kbuckets": parsed_buckets,
         },
         "store": format!("{:?}", *st),
         "rpc": {
             "socket": format!("{:?}", interface.rpc.socket),
             "pending": format!("{:?}", interface.rpc.pending.lock().unwrap()),
-            "node": interface.rpc.node.get_info(),
+            "node": {
+                "ip": interface.rpc.node.ip,
+                "port": interface.rpc.node.port,
+                "id": format!("{:?}", interface.rpc.node.id),
+            },
         }
     });
 

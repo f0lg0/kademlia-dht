@@ -12,7 +12,7 @@ fn main() {
 	// utils::dump_interface_state(&interface1, "dumps/interface1.json");
 
 	interface0.ping(interface1.node.clone());
-	// interface1.ping(interface0.node.clone());
+	interface1.ping(interface0.node.clone());
 
 	utils::dump_interface_state(&interface0, "dumps/interface0.json");
 	utils::dump_interface_state(&interface1, "dumps/interface1.json");
