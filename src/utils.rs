@@ -77,8 +77,24 @@ pub fn dump_interface_state(interface: &Protocol, path: &str) {
         }
     });
 
+    // write to json file
     let mut file = std::fs::File::create(path)
         .expect("utils::dump_interface_state --> Unable to create dump file");
     file.write_all(&json.to_string().as_bytes())
+        .expect("utils::dump_interface_state --> Unable to write to dump file");
+
+    // write also to a .plantuml file
+    let mut diagram = std::fs::File::create(format!("{}.plantuml", path))
+        .expect("utils::dump_interface_state --> Unable to create dump file");
+    diagram
+        .write_all("@startjson\n".to_string().as_bytes())
+        .expect("utils::dump_interface_state --> Unable to write to dump file");
+
+    diagram
+        .write_all(&json.to_string().as_bytes())
+        .expect("utils::dump_interface_state --> Unable to write to dump file");
+
+    diagram
+        .write_all("\n@endjson".to_string().as_bytes())
         .expect("utils::dump_interface_state --> Unable to write to dump file");
 }
