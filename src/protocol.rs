@@ -1,4 +1,3 @@
-use super::key;
 use super::network;
 use super::node::Node;
 use super::routing::RoutingTable;
@@ -63,7 +62,7 @@ impl Protocol {
         });
     }
 
-    fn craft_res(&self, req: network::ReqWrapper) -> (network::Response, String) {
+    fn craft_res(&self, req: network::ReqWrapper) -> (network::Response, network::ReqWrapper) {
         println!(
             "\t[VERBOSE] Protocol::requests_handler --> Parsing: {:?}",
             &req
@@ -88,20 +87,23 @@ impl Protocol {
         drop(routes);
 
         match req.payload {
-            network::Request::Ping => (network::Response::Ping, req.src),
-            network::Request::Store(_, _) => (network::Response::Ping, req.src),
-            network::Request::FindNode(_) => (network::Response::Ping, req.src),
-            network::Request::FindValue(_) => (network::Response::Ping, req.src),
+            network::Request::Ping => (network::Response::Ping, req),
+            network::Request::Store(_, _) => (network::Response::Ping, req),
+            network::Request::FindNode(_) => (network::Response::Ping, req),
+            network::Request::FindValue(_) => (network::Response::Ping, req),
         }
     }
 
-    fn reply(&self, res: (network::Response, String)) {
-        println!("\t[VERBOSE] Replying with {:?} to {}", &res.0, &res.1);
+    fn reply(&self, packet_details: (network::Response, network::ReqWrapper)) {
+        println!(
+            "\t[VERBOSE] Replying with {:?} to {}",
+            &packet_details.0, &packet_details.1.src
+        );
 
         let msg = network::RpcMessage {
-            token: key::Key::new(String::from("pong")),
+            token: packet_details.1.token,
             src: self.node.get_addr(),
-            dst: res.1,
+            dst: packet_details.1.src,
             msg: network::Message::Response(network::Response::Ping),
         };
 

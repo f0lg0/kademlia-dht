@@ -141,7 +141,6 @@ impl Rpc {
     }
 
     pub fn handle_response(self, token: Key, res: Response) {
-        println!("********** HANDLE RESPONSE CALLED");
         thread::spawn(move || {
             let mut pending = self
                 .pending
@@ -196,8 +195,7 @@ impl Rpc {
                     .pending
                     .lock()
                     .expect("Failed to acquire mutex on 'Pending' struct");
-                let tmp = pending.remove(&token);
-                dbg!(tmp);
+                pending.remove(&token);
             }
         });
 
