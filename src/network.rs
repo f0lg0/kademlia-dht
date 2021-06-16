@@ -118,8 +118,9 @@ impl Rpc {
                             break;
                         }
                     }
-                    Message::Response(rep) => {
-                        println!("Response content: {:?}", rep);
+                    Message::Response(res) => {
+                        println!("Response content: {:?}", res);
+                        rpc.clone().handle_response(decoded.token, res);
                     }
                 }
             }
@@ -137,6 +138,30 @@ impl Rpc {
             "[+] Network::send_msg --> From: {}, To: {}, Token: {:?}",
             &msg.src, &msg.dst, &msg.token
         );
+    }
+
+    pub fn handle_response(self, token: Key, res: Response) {
+        println!("********** HANDLE RESPONSE CALLED");
+        thread::spawn(move || {
+            let mut pending = self
+                .pending
+                .lock()
+                .expect("Failed to acquire lock on 'Pending' struct");
+
+            let tmp = match pending.get(&token) {
+                Some(sender) => sender.send(Some(res)),
+                None => {
+                    eprintln!(
+                        "Rpc::handle_response --> Unsolicited response received, ignoring..."
+                    );
+                    return;
+                }
+            };
+
+            if let Ok(_) = tmp {
+                pending.remove(&token);
+            }
+        });
     }
 
     pub fn make_request(&self, req: Request, dst: Node) -> mpsc::Receiver<Option<Response>> {
@@ -171,7 +196,8 @@ impl Rpc {
                     .pending
                     .lock()
                     .expect("Failed to acquire mutex on 'Pending' struct");
-                pending.remove(&token);
+                let tmp = pending.remove(&token);
+                dbg!(tmp);
             }
         });
 
