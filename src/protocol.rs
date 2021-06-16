@@ -28,16 +28,18 @@ impl Protocol {
         network::Rpc::open(rpc.clone(), sender);
         println!("[VERBOSE] Protocol::new --> RPC created");
 
-        let node = Self {
+        let protocol = Self {
             routes: Arc::new(Mutex::new(routes)),
             store: Arc::new(Mutex::new(HashMap::new())),
             rpc: Arc::new(rpc),
             node,
         };
 
-        node.clone().requests_handler(receiver);
+        protocol.clone().requests_handler(receiver);
 
-        node
+        // TODO: perform lookup on ourselves
+
+        protocol
     }
 
     fn requests_handler(self, receiver: mpsc::Receiver<network::ReqWrapper>) {
@@ -47,15 +49,15 @@ impl Protocol {
         );
         std::thread::spawn(move || {
             for req in receiver.iter() {
-                let node = self.clone();
+                let protocol = self.clone();
 
                 println!(
                     "[VERBOSE] Protocol::requests_handler --> Spawning thread to handle {:?}",
                     &req
                 );
                 std::thread::spawn(move || {
-                    let res = node.craft_res(req);
-                    node.reply(res);
+                    let res = protocol.craft_res(req);
+                    protocol.reply(res);
                 });
             }
         });
@@ -66,6 +68,24 @@ impl Protocol {
             "\t[VERBOSE] Protocol::requests_handler --> Parsing: {:?}",
             &req
         );
+
+        let mut routes = self
+            .routes
+            .lock()
+            .expect("Failed to acquire mutex on 'Routes' struct");
+
+        // must craft node object because ReqWrapper contains only the src string addr
+        let split = req.src.split(":");
+        let parsed: Vec<&str> = split.collect();
+
+        let src_node = Node::new(
+            parsed[0].to_string(),
+            parsed[1]
+                .parse::<u16>()
+                .expect("[FAILED] Failed to parse Node port from address"),
+        );
+        routes.update(src_node);
+        drop(routes);
 
         match req.payload {
             network::Request::Ping => (network::Response::Ping, req.src),
@@ -82,7 +102,7 @@ impl Protocol {
             token: key::Key::new(String::from("pong")),
             src: self.node.get_addr(),
             dst: res.1,
-            msg: network::Message::Request(network::Request::Ping),
+            msg: network::Message::Response(network::Response::Ping),
         };
 
         self.rpc.send_msg(&msg);
@@ -106,8 +126,10 @@ impl Protocol {
             routes.update(dst);
             true
         } else {
-            println!("[FAILED] Protocol::Ping --> No response");
-            // TODO: handle no-response from contact
+            println!(
+                "[FAILED] Protocol::Ping --> No response, removing contact from routing tablr"
+            );
+            routes.remove(&dst);
             false
         }
     }
