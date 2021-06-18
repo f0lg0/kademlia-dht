@@ -27,7 +27,7 @@ mod tests {
     use super::key::Key;
     use super::node::Node;
     use super::protocol::Protocol;
-    use super::routing::{NodeAndDistance, RoutingTable};
+    use super::routing::NodeAndDistance;
     use super::utils;
 
     use std::{thread, time};
@@ -73,19 +73,6 @@ mod tests {
         let nd1 = NodeAndDistance(node1.clone(), dist.clone());
 
         assert_eq!(nd0, nd1);
-    }
-
-    #[test]
-    fn routing_table_init() {
-        let node0 = Node::new(utils::get_local_ip().unwrap(), 1337);
-        let node1 = Node::new(utils::get_local_ip().unwrap(), 1338);
-
-        // first ever node to join the net
-        let rt0 = RoutingTable::new(node0.clone(), None);
-        let rt1 = RoutingTable::new(node1, Some(node0));
-
-        println!("[DEBUG] rt0: {:?}", rt0);
-        println!("[DEBUG] rt1: {:?}", rt1);
     }
 
     #[test]

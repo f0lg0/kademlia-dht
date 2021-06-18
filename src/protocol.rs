@@ -1,7 +1,9 @@
 use super::network;
 use super::node::Node;
 use super::routing::RoutingTable;
+use super::utils::ChannelPayload;
 
+use crossbeam_channel;
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -19,12 +21,20 @@ impl Protocol {
         let node = Node::new(ip, port);
         println!("[VERBOSE] Protocol::new --> Node created");
 
-        let routes = RoutingTable::new(node.clone(), bootstrap);
+        let (rt_channel_sender, rt_channel_receiver) = crossbeam_channel::unbounded();
+
+        let routes = RoutingTable::new(
+            node.clone(),
+            bootstrap,
+            rt_channel_sender.clone(),
+            rt_channel_receiver.clone(),
+        );
         println!("[VERBOSE] Protocol::new --> Routes created");
 
-        let (sender, receiver) = mpsc::channel();
+        let (rpc_channel_sender, rpc_channel_receiver) = mpsc::channel();
+
         let rpc = network::Rpc::new(node.clone());
-        network::Rpc::open(rpc.clone(), sender);
+        network::Rpc::open(rpc.clone(), rpc_channel_sender);
         println!("[VERBOSE] Protocol::new --> RPC created");
 
         let protocol = Self {
@@ -34,11 +44,22 @@ impl Protocol {
             node,
         };
 
-        protocol.clone().requests_handler(receiver);
+        protocol.clone().requests_handler(rpc_channel_receiver);
+        protocol
+            .clone()
+            .rt_forwarder(rt_channel_sender, rt_channel_receiver);
 
         // TODO: perform lookup on ourselves
 
         protocol
+    }
+
+    fn rt_forwarder(
+        self,
+        sender: crossbeam_channel::Sender<ChannelPayload>,
+        receiver: crossbeam_channel::Receiver<ChannelPayload>,
+    ) {
+        // TODO: forward incoming request to RPC, wait for response and send that thru the channel to the RT
     }
 
     fn requests_handler(self, receiver: mpsc::Receiver<network::ReqWrapper>) {
@@ -134,5 +155,15 @@ impl Protocol {
             routes.remove(&dst);
             false
         }
+    }
+
+    pub fn store(&self, dst: Node, key: String, val: String) {
+        /*
+            For both to store and to find a <key,value>-pair, a node lookup must performed. If a <key,value>-
+            pair shall be stored in the network, a node lookup for the key is conducted. Thereafter, STORE-
+            RPCs are sent to all of the k nodes the node lookup has returned. A STORE-RPC instructs a
+            node to store the <key,value>-pair contained in the message locally.
+        */
+        unimplemented!();
     }
 }

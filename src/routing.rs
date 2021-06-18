@@ -1,7 +1,11 @@
 use super::key::{Distance, Key};
+use super::network;
 use super::node::Node;
+use super::utils::ChannelPayload;
 use super::K_PARAM;
 use super::N_BUCKETS;
+
+use crossbeam_channel;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,6 +24,8 @@ pub struct KBucket {
 pub struct RoutingTable {
     pub node: Node,
     pub kbuckets: Vec<KBucket>,
+    pub sender: crossbeam_channel::Sender<ChannelPayload>,
+    pub receiver: crossbeam_channel::Receiver<ChannelPayload>,
 }
 
 impl PartialEq for NodeAndDistance {
@@ -50,7 +56,12 @@ impl KBucket {
 }
 
 impl RoutingTable {
-    pub fn new(node: Node, bootstrap: Option<Node>) -> Self {
+    pub fn new(
+        node: Node,
+        bootstrap: Option<Node>,
+        sender: crossbeam_channel::Sender<ChannelPayload>,
+        receiver: crossbeam_channel::Receiver<ChannelPayload>,
+    ) -> Self {
         let mut kbuckets: Vec<KBucket> = Vec::new();
         for _ in 0..N_BUCKETS {
             kbuckets.push(KBucket::new());
@@ -59,6 +70,8 @@ impl RoutingTable {
         let mut ret = Self {
             node: node.clone(),
             kbuckets,
+            sender,
+            receiver,
         };
 
         ret.update(node);
@@ -89,6 +102,18 @@ impl RoutingTable {
         super::KEY_LEN * 8 - 1
     }
 
+    fn contact_via_rpc(&self, dst: String) -> bool {
+        if let Err(_) = self
+            .sender
+            .send(ChannelPayload::Request((network::Request::Ping, dst)))
+        {
+            println!("RoutingTable::contact_via_rpc --> Receiver is dead, closing channel");
+            return false;
+        }
+
+        true
+    }
+
     pub fn update(&mut self, node: Node) {
         /*
             TODO: Adding a node:
@@ -101,28 +126,28 @@ impl RoutingTable {
         */
 
         let bucket_idx = self.get_lookup_bucket_index(&node.id);
-        let bucket = &mut self.kbuckets[bucket_idx];
-        let node_idx = bucket.nodes.iter().position(|x| x.id == node.id);
 
-        match node_idx {
-            Some(i) => {
-                println!(
-                    "[VERBOSE] Routing::update --> Found exact index for node: {}, removing and inserting...",
-                    &i
-                );
-                bucket.nodes.remove(i);
-                bucket.nodes.push(node);
-            }
-            None => {
-                println!("[VERBOSE] Routing::update --> Exact index for node has not been found, we can push no prob");
-                if bucket.nodes.len() < K_PARAM {
-                    bucket.nodes.push(node);
+        if self.kbuckets[bucket_idx].nodes.len() < K_PARAM {
+            let node_idx = self.kbuckets[bucket_idx]
+                .nodes
+                .iter()
+                .position(|x| x.id == node.id);
+            match node_idx {
+                Some(i) => {
+                    println!("[VERBOSE] Routing::update --> Node was already in the kbucket, moving it to the tail of the list");
+                    self.kbuckets[bucket_idx].nodes.remove(i);
+                    self.kbuckets[bucket_idx].nodes.push(node);
+                }
+                None => {
+                    println!("[VERBOSE] Routing::update --> First time we see this contact, pushing to the tail of the list");
+                    self.kbuckets[bucket_idx].nodes.push(node);
                     println!("[DEBUG] Routing::update --> pushed");
-                } else {
-                    // go through bucket, pinging nodes, replace one
-                    // that doesn't respond.
                 }
             }
+        } else {
+            let success = self.contact_via_rpc(self.kbuckets[bucket_idx].nodes[0].get_addr());
+
+            // TODO: wait for response, then proceed (we need a mpms channel)
         }
     }
 

@@ -12,3 +12,4 @@ hex = "0.4.3"
 
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = "1.0.59"
+crossbeam-channel = "0.5.1"

@@ -3,7 +3,13 @@ use std::fs::create_dir_all;
 use std::io::Write;
 use std::net::UdpSocket;
 
+use super::network;
 use super::routing::KBucket;
+
+pub enum ChannelPayload {
+    Request((network::Request, String)),
+    Response(network::Response),
+}
 
 pub fn get_local_ip() -> Option<String> {
     let socket = match UdpSocket::bind("0.0.0.0:0") {
