@@ -59,7 +59,44 @@ impl Protocol {
         sender: crossbeam_channel::Sender<ChannelPayload>,
         receiver: crossbeam_channel::Receiver<ChannelPayload>,
     ) {
-        // TODO: forward incoming request to RPC, wait for response and send that thru the channel to the RT
+        std::thread::spawn(move || {
+            for req in receiver.iter() {
+                let protocol = self.clone();
+                let sender_clone = sender.clone();
+
+                println!(
+                    "[VERBOSE] Protocol::rt_forwarder --> Spawning thread to forward {:?}",
+                    &req
+                );
+                std::thread::spawn(move || match req {
+                    ChannelPayload::Request(payload) => match payload.0 {
+                        network::Request::Ping => {
+                            let success = protocol.ping(payload.1);
+                            if success {
+                                if let Err(_) = sender_clone
+                                    .send(ChannelPayload::Response(network::Response::Ping))
+                                {
+                                    println!("[FAILED] Protocol::rt_forwared --> Receiver is dead, closing channel");
+                                }
+                            } else {
+                                if let Err(_) = sender_clone.send(ChannelPayload::NoData) {
+                                    println!("[FAILED] Protocol::rt_forwared --> Receiver is dead, closing channel");
+                                }
+                            }
+                        }
+                        _ => {
+                            unimplemented!();
+                        }
+                    },
+                    ChannelPayload::Response(_) => {
+                        println!("[FAILED] Protocol::rt_forwarder --> Received a Response instead of a Request")
+                    }
+                    ChannelPayload::NoData => {
+                        println!("[FAILED] Protocol::rt_forwarder --> Received a NoData instead of a Request")
+                    }
+                });
+            }
+        });
     }
 
     fn requests_handler(self, receiver: mpsc::Receiver<network::ReqWrapper>) {
@@ -157,7 +194,7 @@ impl Protocol {
         }
     }
 
-    pub fn store(&self, dst: Node, key: String, val: String) {
+    pub fn store(&self, _dst: Node, _key: String, _val: String) {
         /*
             For both to store and to find a <key,value>-pair, a node lookup must performed. If a <key,value>-
             pair shall be stored in the network, a node lookup for the key is conducted. Thereafter, STORE-

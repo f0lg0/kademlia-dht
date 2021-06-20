@@ -102,12 +102,14 @@ impl RoutingTable {
         super::KEY_LEN * 8 - 1
     }
 
-    fn contact_via_rpc(&self, dst: String) -> bool {
+    fn contact_via_rpc(&self, dst: Node) -> bool {
         if let Err(_) = self
             .sender
             .send(ChannelPayload::Request((network::Request::Ping, dst)))
         {
-            println!("RoutingTable::contact_via_rpc --> Receiver is dead, closing channel");
+            println!(
+                "[FAILED] RoutingTable::contact_via_rpc --> Receiver is dead, closing channel"
+            );
             return false;
         }
 
@@ -115,18 +117,9 @@ impl RoutingTable {
     }
 
     pub fn update(&mut self, node: Node) {
-        /*
-            TODO: Adding a node:
-                If the corresponding k-bucket stores less than k contacts
-                and the new node is not already contained, the new node is added at the tail of the list.
-                If the k-bucket contains the contact already, it is moved to the tail of the list.
-                Should the appropriate k-bucket be full, then the contact at the head of the list is pinged.
-                If it replies, then it is moved to the tail of the list and the new contact is not added.
-                If it does not, the old contact is discarded and the new contact is added at the tail.
-        */
-
         let bucket_idx = self.get_lookup_bucket_index(&node.id);
 
+        // TODO(testing): fill buckets with dummy nodes so we can reach the else statement
         if self.kbuckets[bucket_idx].nodes.len() < K_PARAM {
             let node_idx = self.kbuckets[bucket_idx]
                 .nodes
@@ -145,9 +138,27 @@ impl RoutingTable {
                 }
             }
         } else {
-            let success = self.contact_via_rpc(self.kbuckets[bucket_idx].nodes[0].get_addr());
+            let _success = self.contact_via_rpc(self.kbuckets[bucket_idx].nodes[0].clone());
+            let receiver = self.receiver.clone();
 
-            // TODO: wait for response, then proceed (we need a mpms channel)
+            // We must make it blocking (no threads) because we still want to use the mutable reference to the buckets
+            // we don't want to clone and move
+            let res = receiver
+                .recv()
+                .expect("[FAILED] Routing::update --> Failed  to receive data from channel");
+            match res {
+                ChannelPayload::Response(_) => {
+                    let to_re_add = self.kbuckets[bucket_idx].nodes.remove(0);
+                    self.kbuckets[bucket_idx].nodes.push(to_re_add);
+                }
+                ChannelPayload::Request(_) => {
+                    println!("[FAILED] Routing::update --> Unexpectedly got a Request instead of a Response");
+                }
+                ChannelPayload::NoData => {
+                    self.kbuckets[bucket_idx].nodes.remove(0);
+                    self.kbuckets[bucket_idx].nodes.push(node);
+                }
+            };
         }
     }
 

@@ -1,4 +1,6 @@
+use super::node::Node;
 use super::protocol::Protocol;
+
 use std::fs::create_dir_all;
 use std::io::Write;
 use std::net::UdpSocket;
@@ -6,9 +8,11 @@ use std::net::UdpSocket;
 use super::network;
 use super::routing::KBucket;
 
+#[derive(Debug)]
 pub enum ChannelPayload {
-    Request((network::Request, String)),
+    Request((network::Request, Node)),
     Response(network::Response),
+    NoData,
 }
 
 pub fn get_local_ip() -> Option<String> {
