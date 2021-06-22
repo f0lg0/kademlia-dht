@@ -61,6 +61,13 @@ pub fn dump_interface_state(interface: &Protocol, path: &str) {
         }
     }
 
+    let mut parsed_store = vec![];
+    // parse store
+    for (k, v) in &*st {
+        let obj = serde_json::json!({ k: v });
+        parsed_store.push(obj);
+    }
+
     let json = serde_json::json!({
         "node": {
             "ip": interface.node.ip,
@@ -75,7 +82,7 @@ pub fn dump_interface_state(interface: &Protocol, path: &str) {
             },
             "kbuckets": parsed_buckets,
         },
-        "store": format!("{:?}", *st),
+        "store": parsed_store,
         "rpc": {
             "socket": format!("{:?}", interface.rpc.socket),
             "pending": format!("{:?}", interface.rpc.pending.lock().unwrap()),
