@@ -121,10 +121,7 @@ impl Protocol {
     }
 
     fn craft_res(&self, req: network::ReqWrapper) -> (network::Response, network::ReqWrapper) {
-        println!(
-            "\t[VERBOSE] Protocol::requests_handler --> Parsing: {:?}",
-            &req
-        );
+        println!("\t[VERBOSE] Protocol::craft_res --> Parsing: {:?}", &req);
 
         let mut routes = self
             .routes
@@ -146,7 +143,17 @@ impl Protocol {
 
         match req.payload {
             network::Request::Ping => (network::Response::Ping, req),
-            network::Request::Store(_, _) => (network::Response::Ping, req),
+            network::Request::Store(ref k, ref v) => {
+                // ref is used to borrow k and v, which are the contents of req
+
+                let mut store = self
+                    .store
+                    .lock()
+                    .expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on store");
+                store.insert(k.to_string(), v.to_string());
+
+                (network::Response::Ping, req)
+            }
             network::Request::FindNode(_) => (network::Response::Ping, req),
             network::Request::FindValue(_) => (network::Response::Ping, req),
         }
@@ -194,13 +201,30 @@ impl Protocol {
         }
     }
 
-    pub fn store(&self, _dst: Node, _key: String, _val: String) {
+    pub fn store(&self, dst: Node, key: String, val: String) -> bool {
         /*
             For both to store and to find a <key,value>-pair, a node lookup must performed. If a <key,value>-
             pair shall be stored in the network, a node lookup for the key is conducted. Thereafter, STORE-
             RPCs are sent to all of the k nodes the node lookup has returned. A STORE-RPC instructs a
             node to store the <key,value>-pair contained in the message locally.
         */
-        unimplemented!();
+        let res = self
+            .rpc
+            .make_request(network::Request::Store(key, val), dst.clone())
+            .recv()
+            .expect("[FAILED] Protocol::store --> Failed to receive response through channel");
+
+        // since we get a ping, update our routing table
+        let mut routes = self
+            .routes
+            .lock()
+            .expect("[FAILED] Protocol::store --> Failed to acquire mutex on 'Routes' struct");
+        if let Some(network::Response::Ping) = res {
+            routes.update(dst);
+            true
+        } else {
+            routes.remove(&dst);
+            false
+        }
     }
 }
