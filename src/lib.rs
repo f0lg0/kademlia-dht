@@ -21,6 +21,9 @@ const BUF_SIZE: usize = 4096;
 // response timeout 5000ms
 const TIMEOUT: u64 = 5000;
 
+// number of concurrent lookups in node lookup
+const ALPHA: usize = 3;
+
 #[cfg(test)]
 mod tests {
     use super::key::Distance;
