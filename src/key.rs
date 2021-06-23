@@ -32,7 +32,7 @@ impl Debug for Key {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Hash, Ord, PartialOrd, Eq, PartialEq, Copy)]
 pub struct Distance(pub [u8; KEY_LEN]);
 
 impl Distance {
