@@ -1,7 +1,7 @@
 use super::key::Key;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Node {
     pub ip: String,
     pub port: u16,
