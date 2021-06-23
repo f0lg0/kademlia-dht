@@ -1,6 +1,6 @@
 use super::network;
 use super::node::Node;
-use super::routing::{NodeAndDistance, RoutingTable};
+use super::routing;
 use super::utils::ChannelPayload;
 
 use crossbeam_channel;
@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct Protocol {
-    pub routes: Arc<Mutex<RoutingTable>>,
+    pub routes: Arc<Mutex<routing::RoutingTable>>,
     pub store: Arc<Mutex<HashMap<String, String>>>,
     pub rpc: Arc<network::Rpc>,
     pub node: Node,
@@ -23,7 +23,7 @@ impl Protocol {
 
         let (rt_channel_sender, rt_channel_receiver) = crossbeam_channel::unbounded();
 
-        let routes = RoutingTable::new(
+        let routes = routing::RoutingTable::new(
             node.clone(),
             bootstrap,
             rt_channel_sender.clone(),
@@ -163,7 +163,32 @@ impl Protocol {
 
                 (network::Response::FindNode(result), req)
             }
-            network::Request::FindValue(_) => (network::Response::Ping, req),
+            network::Request::FindValue(ref k) => {
+                let key = super::key::Key::new(k.to_string());
+                let store = self.store.lock().expect(
+                    "[FAILED] Protocol::craft_res --> Failed to acquire mutex on 'Store' struct",
+                );
+
+                let val = store.get(k);
+
+                match val {
+                    Some(v) => (
+                        network::Response::FindValue(routing::FindValueResult::Value(
+                            v.to_string(),
+                        )),
+                        req,
+                    ),
+                    None => {
+                        let routes = self.routes.lock().expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on 'Routes' struct");
+                        (
+                            network::Response::FindValue(routing::FindValueResult::Nodes(
+                                routes.get_closest_nodes(key, super::ALPHA),
+                            )),
+                            req,
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -236,14 +261,16 @@ impl Protocol {
         }
     }
 
-    pub fn find_node(&self, dst: Node, id: super::key::Key) -> Option<Vec<NodeAndDistance>> {
+    pub fn find_node(
+        &self,
+        dst: Node,
+        id: super::key::Key,
+    ) -> Option<Vec<routing::NodeAndDistance>> {
         let res = self
             .rpc
             .make_request(network::Request::FindNode(id), dst.clone())
             .recv()
             .expect("[FAILED] Protocol::find_node --> Failed to receive response through channel");
-
-        dbg!(&res);
 
         let mut routes = self
             .routes
@@ -252,6 +279,27 @@ impl Protocol {
         if let Some(network::Response::FindNode(entries)) = res {
             routes.update(dst);
             Some(entries)
+        } else {
+            routes.remove(&dst);
+            None
+        }
+    }
+
+    pub fn find_value(&self, dst: Node, k: String) -> Option<routing::FindValueResult> {
+        let res = self
+            .rpc
+            .make_request(network::Request::FindValue(k), dst.clone())
+            .recv()
+            .expect("[FAILED] Protocol::find_value --> Failed to receive response through channel");
+
+        let mut routes = self
+            .routes
+            .lock()
+            .expect("[FAILED] Protocol::find_value --> Failed to acquire mutex on 'Routes' struct");
+
+        if let Some(network::Response::FindValue(val)) = res {
+            routes.update(dst);
+            Some(val)
         } else {
             routes.remove(&dst);
             None

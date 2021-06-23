@@ -35,8 +35,11 @@ fn main() {
 		"another_value".to_string(),
 	);
 
-	let found = interface0.find_node(some_node.clone(), another_node.id.clone());
-	println!("find_node: {:?}", found);
+	let find_node = interface0.find_node(some_node.clone(), another_node.id.clone());
+	println!("find_node: {:?}", find_node);
+
+	let find_value = interface2.find_value(some_node.clone(), "some_key".to_string());
+	println!("find_value: {:?}", find_value);
 
 	utils::dump_interface_state(&interface0, "dumps/interface0.json");
 	utils::dump_interface_state(&interface1, "dumps/interface1.json");

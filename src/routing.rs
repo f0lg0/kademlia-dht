@@ -12,7 +12,10 @@ use serde::{Deserialize, Serialize};
 pub struct NodeAndDistance(pub Node, pub Distance);
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct FindValueResult(Option<Vec<NodeAndDistance>>, Option<String>);
+pub enum FindValueResult {
+    Nodes(Vec<NodeAndDistance>),
+    Value(String),
+}
 
 #[derive(Debug)]
 pub struct KBucket {
@@ -193,13 +196,13 @@ impl RoutingTable {
     }
 
     pub fn get_closest_nodes(&self, key: Key, count: usize) -> Vec<NodeAndDistance> {
-        // NOTE: slow method, must improve
         let mut ret = Vec::with_capacity(count);
 
         if count == 0 {
             return ret;
         }
 
+        // ! TODO: slow method, must improve
         for bucket in &self.kbuckets {
             for node in &bucket.nodes {
                 ret.push(NodeAndDistance(node.clone(), Distance::new(&node.id, &key)));
