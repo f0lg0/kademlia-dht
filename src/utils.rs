@@ -6,7 +6,7 @@ use std::io::Write;
 use std::net::UdpSocket;
 
 use super::network;
-use super::routing::KBucket;
+use super::routing::{KBucket, NodeAndDistance};
 
 #[derive(Debug)]
 pub enum ChannelPayload {
@@ -114,4 +114,33 @@ pub fn dump_interface_state(interface: &Protocol, path: &str) {
     diagram
         .write_all("\n@endjson".to_string().as_bytes())
         .expect("utils::dump_interface_state --> Unable to write to dump file");
+}
+
+pub fn dump_node_and_distance(
+    entries: &Vec<NodeAndDistance>,
+    target: &super::key::Key,
+    path: &str,
+) {
+    let mut parsed = vec![];
+
+    for e in entries {
+        parsed.push(serde_json::json!({
+            "node": {
+                "ip": e.0.ip,
+                "port": e.0.port,
+                "id": format!("{:?}", e.0.id),
+            },
+            "distance": format!("{:?}", e.1),
+        }))
+    }
+
+    let json = serde_json::json!({
+        "target": format!("{:?}", target),
+        "found": parsed,
+    });
+
+    let mut file = std::fs::File::create(path)
+        .expect("utils::dump_node_and_distance --> Unable to create dump file");
+    file.write_all(&json.to_string().as_bytes())
+        .expect("utils::dump_node_and_distance --> Unable to write to dump file");
 }
