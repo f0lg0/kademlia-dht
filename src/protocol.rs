@@ -1,6 +1,6 @@
 use super::network;
 use super::node::Node;
-use super::routing::RoutingTable;
+use super::routing::{NodeAndDistance, RoutingTable};
 use super::utils::ChannelPayload;
 
 use crossbeam_channel;
@@ -154,7 +154,15 @@ impl Protocol {
 
                 (network::Response::Ping, req)
             }
-            network::Request::FindNode(_) => (network::Response::Ping, req),
+            network::Request::FindNode(ref id) => {
+                let routes = self.routes.lock().expect(
+                    "[FAILED] Protocol::craft_res --> Failed to acquire mutex on 'Routes' struct",
+                );
+
+                let result = routes.get_closest_nodes(id.clone(), super::ALPHA);
+
+                (network::Response::FindNode(result), req)
+            }
             network::Request::FindValue(_) => (network::Response::Ping, req),
         }
     }
@@ -169,7 +177,7 @@ impl Protocol {
             token: packet_details.1.token,
             src: self.node.get_addr(),
             dst: packet_details.1.src,
-            msg: network::Message::Response(network::Response::Ping),
+            msg: network::Message::Response(packet_details.0),
         };
 
         self.rpc.send_msg(&msg);
@@ -225,6 +233,28 @@ impl Protocol {
         } else {
             routes.remove(&dst);
             false
+        }
+    }
+
+    pub fn find_node(&self, dst: Node, id: super::key::Key) -> Option<Vec<NodeAndDistance>> {
+        let res = self
+            .rpc
+            .make_request(network::Request::FindNode(id), dst.clone())
+            .recv()
+            .expect("[FAILED] Protocol::find_node --> Failed to receive response through channel");
+
+        dbg!(&res);
+
+        let mut routes = self
+            .routes
+            .lock()
+            .expect("[FAILED] Protocol::find_node --> Failed to acquire mutex on 'Routes' struct");
+        if let Some(network::Response::FindNode(entries)) = res {
+            routes.update(dst);
+            Some(entries)
+        } else {
+            routes.remove(&dst);
+            None
         }
     }
 }

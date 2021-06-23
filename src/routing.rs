@@ -8,7 +8,7 @@ use super::N_BUCKETS;
 use crossbeam_channel;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq)]
 pub struct NodeAndDistance(pub Node, pub Distance);
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -41,6 +41,18 @@ impl PartialEq for NodeAndDistance {
         }
 
         equal
+    }
+}
+
+impl PartialOrd for NodeAndDistance {
+    fn partial_cmp(&self, other: &NodeAndDistance) -> Option<std::cmp::Ordering> {
+        Some(other.1.cmp(&self.1))
+    }
+}
+
+impl Ord for NodeAndDistance {
+    fn cmp(&self, other: &NodeAndDistance) -> std::cmp::Ordering {
+        other.1.cmp(&self.1)
     }
 }
 
@@ -178,5 +190,23 @@ impl RoutingTable {
         } else {
             println!("[WARN] Tried to remove non-existing entry");
         }
+    }
+
+    pub fn get_closest_nodes(&self, key: Key, count: usize) -> Vec<NodeAndDistance> {
+        // NOTE: slow method, must improve
+        let mut ret = Vec::with_capacity(count);
+
+        if count == 0 {
+            return ret;
+        }
+
+        for bucket in &self.kbuckets {
+            for node in &bucket.nodes {
+                ret.push(NodeAndDistance(node.clone(), Distance::new(&node.id, &key)));
+            }
+        }
+
+        ret.sort_by(|a, b| a.1.cmp(&b.1));
+        ret
     }
 }
