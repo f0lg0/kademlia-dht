@@ -8,7 +8,7 @@ use super::N_BUCKETS;
 use crossbeam_channel;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Eq)]
+#[derive(Debug, Serialize, Deserialize, Eq, Hash, Clone)]
 pub struct NodeAndDistance(pub Node, pub Distance);
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -195,7 +195,7 @@ impl RoutingTable {
         }
     }
 
-    pub fn get_closest_nodes(&self, key: Key, count: usize) -> Vec<NodeAndDistance> {
+    pub fn get_closest_nodes(&self, key: &Key, count: usize) -> Vec<NodeAndDistance> {
         let mut ret = Vec::with_capacity(count);
 
         if count == 0 {
@@ -205,7 +205,7 @@ impl RoutingTable {
         // ! TODO: slow method, must improve
         for bucket in &self.kbuckets {
             for node in &bucket.nodes {
-                ret.push(NodeAndDistance(node.clone(), Distance::new(&node.id, &key)));
+                ret.push(NodeAndDistance(node.clone(), Distance::new(&node.id, key)));
             }
         }
 
