@@ -4,7 +4,7 @@ use super::routing;
 use super::utils::ChannelPayload;
 
 use crossbeam_channel;
-use std::collections::HashMap;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
@@ -41,7 +41,7 @@ impl Protocol {
             routes: Arc::new(Mutex::new(routes)),
             store: Arc::new(Mutex::new(HashMap::new())),
             rpc: Arc::new(rpc),
-            node,
+            node: node.clone(),
         };
 
         protocol.clone().requests_handler(rpc_channel_receiver);
@@ -49,7 +49,8 @@ impl Protocol {
             .clone()
             .rt_forwarder(rt_channel_sender, rt_channel_receiver);
 
-        // TODO: perform lookup on ourselves
+        // performing node lookup on ourselves
+        protocol.nodes_lookup(&node.id);
 
         protocol
     }
@@ -159,7 +160,7 @@ impl Protocol {
                     "[FAILED] Protocol::craft_res --> Failed to acquire mutex on 'Routes' struct",
                 );
 
-                let result = routes.get_closest_nodes(id.clone(), super::ALPHA);
+                let result = routes.get_closest_nodes(id, super::K_PARAM);
 
                 (network::Response::FindNode(result), req)
             }
@@ -182,7 +183,7 @@ impl Protocol {
                         let routes = self.routes.lock().expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on 'Routes' struct");
                         (
                             network::Response::FindValue(routing::FindValueResult::Nodes(
-                                routes.get_closest_nodes(key, super::ALPHA),
+                                routes.get_closest_nodes(&key, super::K_PARAM),
                             )),
                             req,
                         )
@@ -236,6 +237,7 @@ impl Protocol {
 
     pub fn store(&self, dst: Node, key: String, val: String) -> bool {
         /*
+        TODO:
             For both to store and to find a <key,value>-pair, a node lookup must performed. If a <key,value>-
             pair shall be stored in the network, a node lookup for the key is conducted. Thereafter, STORE-
             RPCs are sent to all of the k nodes the node lookup has returned. A STORE-RPC instructs a
@@ -304,5 +306,72 @@ impl Protocol {
             routes.remove(&dst);
             None
         }
+    }
+
+    pub fn nodes_lookup(&self, id: &super::key::Key) -> Vec<routing::NodeAndDistance> {
+        let mut ret: Vec<routing::NodeAndDistance> = Vec::new();
+
+        let mut queried = HashSet::new();
+        let routes = self.routes.lock().expect(
+            "[FAILED] Protocol::nodes_lookup --> Failed to acquire mutex on 'Route' struct",
+        );
+
+        let mut to_query = BinaryHeap::from(routes.get_closest_nodes(id, super::K_PARAM));
+        drop(routes);
+
+        for entry in &to_query {
+            queried.insert(entry.clone());
+        }
+
+        while !to_query.is_empty() {
+            let mut joins: Vec<std::thread::JoinHandle<Option<Vec<routing::NodeAndDistance>>>> =
+                Vec::new();
+            let mut queries: Vec<routing::NodeAndDistance> = Vec::new();
+            let mut results: Vec<Option<Vec<routing::NodeAndDistance>>> = Vec::new();
+
+            for _ in 0..super::ALPHA {
+                match to_query.pop() {
+                    Some(entry) => {
+                        queries.push(entry);
+                    }
+                    None => {
+                        break;
+                    }
+                }
+            }
+
+            for &routing::NodeAndDistance(ref node, _) in &queries {
+                let n = node.clone();
+                let id_clone = id.clone();
+                let protocol_clone = self.clone();
+
+                joins.push(std::thread::spawn(move || {
+                    protocol_clone.find_node(n, id_clone)
+                }));
+            }
+
+            for j in joins {
+                results.push(j.join().expect(
+                    "Protocol::nodes_lookup --> Failed to join thread while visiting nodes",
+                ));
+            }
+
+            for (result, query) in results.into_iter().zip(queries) {
+                if let Some(entries) = result {
+                    ret.push(query);
+
+                    for entry in entries {
+                        if queried.insert(entry.clone()) {
+                            to_query.push(entry);
+                        }
+                    }
+                }
+            }
+        }
+
+        ret.sort_by(|a, b| a.1.cmp(&b.1));
+        ret.truncate(super::K_PARAM);
+
+        ret
     }
 }
