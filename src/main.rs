@@ -23,17 +23,18 @@ fn main() {
 	interface0.ping(interface1.node.clone());
 	interface2.ping(interface1.node.clone());
 
-	interface0.store(
-		interface1.node.clone(),
-		"some_key".to_string(),
-		"some_value".to_string(),
-	);
+	// interface0.store(
+	// 	interface1.node.clone(),
+	// 	"some_key".to_string(),
+	// 	"some_value".to_string(),
+	// );
 
-	interface0.store(
-		interface1.node.clone(),
-		"another_key".to_string(),
-		"another_value".to_string(),
-	);
+	// interface0.store(
+	// 	interface1.node.clone(),
+	// 	"another_key".to_string(),
+	// 	"another_value".to_string(),
+	// );
+	interface0.put("some_key".to_owned(), "some_value".to_owned());
 
 	let find_node = interface0.find_node(some_node.clone(), another_node.id.clone());
 	println!("find_node: {:?}", find_node);

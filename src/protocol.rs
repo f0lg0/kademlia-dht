@@ -450,4 +450,18 @@ impl Protocol {
         ret.truncate(super::K_PARAM);
         (None, ret)
     }
+
+    pub fn put(&self, k: String, v: String) {
+        let candidates = self.nodes_lookup(&super::key::Key::new(k.clone()));
+
+        for routing::NodeAndDistance(node, _) in candidates {
+            let protocol_clone = self.clone();
+            let k_clone = k.clone();
+            let v_clone = v.clone();
+
+            std::thread::spawn(move || {
+                protocol_clone.store(node, k_clone, v_clone);
+            });
+        }
+    }
 }
