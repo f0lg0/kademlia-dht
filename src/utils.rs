@@ -43,16 +43,17 @@ pub fn make_req_get_res(
 }
 
 pub fn dump_interface_state(interface: &Protocol, path: &str) {
-    create_dir_all("dumps").expect("utils::dump_interface_state --> Unable to create dumps dir");
+    create_dir_all("dumps")
+        .expect("[FAILED] Utils::dump_interface_state --> Unable to create dumps dir");
 
     let rt = interface
         .routes
         .lock()
-        .expect("Failed to acquire mutex on 'Routes' struct");
+        .expect("[FAILED] Utils::dump_interface_state --> Failed to acquire mutex on Routes");
     let st = interface
         .store
         .lock()
-        .expect("Failed to acquire mutex on 'Store' struct");
+        .expect("[FAILED] Utils::dump_interface_state --> Failed to acquire mutex on Store");
 
     let flattened: Vec<&KBucket> = rt.kbuckets.iter().collect();
 
@@ -106,24 +107,24 @@ pub fn dump_interface_state(interface: &Protocol, path: &str) {
 
     // write to json file
     let mut file = std::fs::File::create(path)
-        .expect("utils::dump_interface_state --> Unable to create dump file");
+        .expect("[FAILED] Utils::dump_interface_state --> Unable to create dump file");
     file.write_all(&json.to_string().as_bytes())
-        .expect("utils::dump_interface_state --> Unable to write to dump file");
+        .expect("[FAILED] Utils::dump_interface_state --> Unable to write to dump file");
 
     // write also to a .plantuml file
     let mut diagram = std::fs::File::create(format!("{}.plantuml", path))
-        .expect("utils::dump_interface_state --> Unable to create dump file");
+        .expect("[FAILED] Utils::dump_interface_state --> Unable to create dump file");
     diagram
         .write_all("@startjson\n".to_string().as_bytes())
-        .expect("utils::dump_interface_state --> Unable to write to dump file");
+        .expect("[FAILED] Utils::dump_interface_state --> Unable to write to dump file");
 
     diagram
         .write_all(&json.to_string().as_bytes())
-        .expect("utils::dump_interface_state --> Unable to write to dump file");
+        .expect("[FAILED] Utils::dump_interface_state --> Unable to write to dump file");
 
     diagram
         .write_all("\n@endjson".to_string().as_bytes())
-        .expect("utils::dump_interface_state --> Unable to write to dump file");
+        .expect("[FAILED] Utils::dump_interface_state --> Unable to write to dump file");
 }
 
 pub fn dump_node_and_distance(
@@ -150,7 +151,7 @@ pub fn dump_node_and_distance(
     });
 
     let mut file = std::fs::File::create(path)
-        .expect("utils::dump_node_and_distance --> Unable to create dump file");
+        .expect("[FAILED] Utils::dump_node_and_distance --> Unable to create dump file");
     file.write_all(&json.to_string().as_bytes())
-        .expect("utils::dump_node_and_distance --> Unable to write to dump file");
+        .expect("[FAILED] Utils::dump_node_and_distance --> Unable to write to dump file");
 }

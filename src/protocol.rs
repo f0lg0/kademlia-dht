@@ -19,7 +19,6 @@ pub struct Protocol {
 impl Protocol {
     pub fn new(ip: String, port: u16, bootstrap: Option<Node>) -> Self {
         let node = Node::new(ip, port);
-        println!("[VERBOSE] Protocol::new --> Node created");
 
         let (rt_channel_sender, rt_channel_receiver) = crossbeam_channel::unbounded();
 
@@ -29,13 +28,11 @@ impl Protocol {
             rt_channel_sender.clone(),
             rt_channel_receiver.clone(),
         );
-        println!("[VERBOSE] Protocol::new --> Routes created");
 
         let (rpc_channel_sender, rpc_channel_receiver) = mpsc::channel();
 
         let rpc = network::Rpc::new(node.clone());
         network::Rpc::open(rpc.clone(), rpc_channel_sender);
-        println!("[VERBOSE] Protocol::new --> RPC created");
 
         let protocol = Self {
             routes: Arc::new(Mutex::new(routes)),
@@ -65,10 +62,6 @@ impl Protocol {
                 let protocol = self.clone();
                 let sender_clone = sender.clone();
 
-                println!(
-                    "[VERBOSE] Protocol::rt_forwarder --> Spawning thread to forward {:?}",
-                    &req
-                );
                 std::thread::spawn(move || match req {
                     utils::ChannelPayload::Request(payload) => match payload.0 {
                         network::Request::Ping => {
@@ -77,11 +70,11 @@ impl Protocol {
                                 if let Err(_) = sender_clone
                                     .send(utils::ChannelPayload::Response(network::Response::Ping))
                                 {
-                                    println!("[FAILED] Protocol::rt_forwared --> Receiver is dead, closing channel");
+                                    eprintln!("[FAILED] Protocol::rt_forwared --> Receiver is dead, closing channel");
                                 }
                             } else {
                                 if let Err(_) = sender_clone.send(utils::ChannelPayload::NoData) {
-                                    println!("[FAILED] Protocol::rt_forwared --> Receiver is dead, closing channel");
+                                    eprintln!("[FAILED] Protocol::rt_forwared --> Receiver is dead, closing channel");
                                 }
                             }
                         }
@@ -90,10 +83,10 @@ impl Protocol {
                         }
                     },
                     utils::ChannelPayload::Response(_) => {
-                        println!("[FAILED] Protocol::rt_forwarder --> Received a Response instead of a Request")
+                        eprintln!("[FAILED] Protocol::rt_forwarder --> Received a Response instead of a Request")
                     }
                     utils::ChannelPayload::NoData => {
-                        println!("[FAILED] Protocol::rt_forwarder --> Received a NoData instead of a Request")
+                        eprintln!("[FAILED] Protocol::rt_forwarder --> Received a NoData instead of a Request")
                     }
                 });
             }
@@ -101,18 +94,10 @@ impl Protocol {
     }
 
     fn requests_handler(self, receiver: mpsc::Receiver<network::ReqWrapper>) {
-        println!(
-            "[*] Protocol::requests_handler --> Starting Requests Handler for receiver: {} [*]",
-            &self.node.get_addr()
-        );
         std::thread::spawn(move || {
             for req in receiver.iter() {
                 let protocol = self.clone();
 
-                println!(
-                    "[VERBOSE] Protocol::requests_handler --> Spawning thread to handle {:?}",
-                    &req
-                );
                 std::thread::spawn(move || {
                     let res = protocol.craft_res(req);
                     protocol.reply(res);
@@ -122,12 +107,10 @@ impl Protocol {
     }
 
     fn craft_res(&self, req: network::ReqWrapper) -> (network::Response, network::ReqWrapper) {
-        println!("\t[VERBOSE] Protocol::craft_res --> Parsing: {:?}", &req);
-
         let mut routes = self
             .routes
             .lock()
-            .expect("Failed to acquire mutex on 'Routes' struct");
+            .expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on Routes");
 
         // must craft node object because ReqWrapper contains only the src string addr
         let split = req.src.split(":");
@@ -137,7 +120,7 @@ impl Protocol {
             parsed[0].to_string(),
             parsed[1]
                 .parse::<u16>()
-                .expect("[FAILED] Failed to parse Node port from address"),
+                .expect("[FAILED] Protocol::craft_res --> Failed to parse Node port from address"),
         );
         routes.update(src_node);
         drop(routes);
@@ -150,15 +133,16 @@ impl Protocol {
                 let mut store = self
                     .store
                     .lock()
-                    .expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on store");
+                    .expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on Store");
                 store.insert(k.to_string(), v.to_string());
 
                 (network::Response::Ping, req)
             }
             network::Request::FindNode(ref id) => {
-                let routes = self.routes.lock().expect(
-                    "[FAILED] Protocol::craft_res --> Failed to acquire mutex on 'Routes' struct",
-                );
+                let routes = self
+                    .routes
+                    .lock()
+                    .expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on Routes");
 
                 let result = routes.get_closest_nodes(id, super::K_PARAM);
 
@@ -166,9 +150,10 @@ impl Protocol {
             }
             network::Request::FindValue(ref k) => {
                 let key = super::key::Key::new(k.to_string());
-                let store = self.store.lock().expect(
-                    "[FAILED] Protocol::craft_res --> Failed to acquire mutex on 'Store' struct",
-                );
+                let store = self
+                    .store
+                    .lock()
+                    .expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on Store");
 
                 let val = store.get(k);
 
@@ -180,7 +165,9 @@ impl Protocol {
                         req,
                     ),
                     None => {
-                        let routes = self.routes.lock().expect("[FAILED] Protocol::craft_res --> Failed to acquire mutex on 'Routes' struct");
+                        let routes = self.routes.lock().expect(
+                            "[FAILED] Protocol::craft_res --> Failed to acquire mutex on Routes",
+                        );
                         (
                             network::Response::FindValue(routing::FindValueResult::Nodes(
                                 routes.get_closest_nodes(&key, super::K_PARAM),
@@ -194,11 +181,6 @@ impl Protocol {
     }
 
     fn reply(&self, packet_details: (network::Response, network::ReqWrapper)) {
-        println!(
-            "\t[VERBOSE] Replying with {:?} to {}",
-            &packet_details.0, &packet_details.1.src
-        );
-
         let msg = network::RpcMessage {
             token: packet_details.1.token,
             src: self.node.get_addr(),
@@ -215,15 +197,14 @@ impl Protocol {
         let mut routes = self
             .routes
             .lock()
-            .expect("Failed to acquire lock on routes");
+            .expect("[FAILED] Protocol::ping --> Failed to acquire lock on Routes");
 
         if let Some(network::Response::Ping) = res {
-            println!("[STATUS] Protocol::Ping --> Got Pong");
             routes.update(dst);
             true
         } else {
-            println!(
-                "[FAILED] Protocol::Ping --> No response, removing contact from routing tablr"
+            eprintln!(
+                "[WARNING] Protocol::Ping --> No response, removing contact from routing table"
             );
             routes.remove(&dst);
             false
@@ -238,7 +219,7 @@ impl Protocol {
         let mut routes = self
             .routes
             .lock()
-            .expect("[FAILED] Protocol::store --> Failed to acquire mutex on 'Routes' struct");
+            .expect("[FAILED] Protocol::store --> Failed to acquire mutex on Routes");
         if let Some(network::Response::Ping) = res {
             routes.update(dst);
             true
@@ -258,7 +239,7 @@ impl Protocol {
         let mut routes = self
             .routes
             .lock()
-            .expect("[FAILED] Protocol::find_node --> Failed to acquire mutex on 'Routes' struct");
+            .expect("[FAILED] Protocol::find_node --> Failed to acquire mutex on Routes");
         if let Some(network::Response::FindNode(entries)) = res {
             routes.update(dst);
             Some(entries)
@@ -274,7 +255,7 @@ impl Protocol {
         let mut routes = self
             .routes
             .lock()
-            .expect("[FAILED] Protocol::find_value --> Failed to acquire mutex on 'Routes' struct");
+            .expect("[FAILED] Protocol::find_value --> Failed to acquire mutex on Routes");
 
         if let Some(network::Response::FindValue(val)) = res {
             routes.update(dst);
@@ -289,9 +270,10 @@ impl Protocol {
         let mut ret: Vec<routing::NodeAndDistance> = Vec::new();
 
         let mut queried = HashSet::new();
-        let routes = self.routes.lock().expect(
-            "[FAILED] Protocol::nodes_lookup --> Failed to acquire mutex on 'Route' struct",
-        );
+        let routes = self
+            .routes
+            .lock()
+            .expect("[FAILED] Protocol::nodes_lookup --> Failed to acquire mutex on Routes");
 
         let mut to_query = BinaryHeap::from(routes.get_closest_nodes(id, super::K_PARAM));
         drop(routes);
@@ -329,7 +311,7 @@ impl Protocol {
 
             for j in joins {
                 results.push(j.join().expect(
-                    "Protocol::nodes_lookup --> Failed to join thread while visiting nodes",
+                    "[FAILED] Protocol::nodes_lookup --> Failed to join thread while visiting nodes",
                 ));
             }
 
@@ -359,9 +341,10 @@ impl Protocol {
         let key = super::key::Key::new(k.clone());
         let mut queried = HashSet::new();
 
-        let routes = self.routes.lock().expect(
-            "[FAILED] Protocol::value_lookup --> Failed to acquire mutex on 'Routes' struct",
-        );
+        let routes = self
+            .routes
+            .lock()
+            .expect("[FAILED] Protocol::value_lookup --> Failed to acquire mutex on Routes");
         let mut to_query = BinaryHeap::from(routes.get_closest_nodes(&key, super::K_PARAM));
         drop(routes);
 

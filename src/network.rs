@@ -61,7 +61,7 @@ pub struct Rpc {
 impl Rpc {
     pub fn new(node: Node) -> Self {
         let socket = UdpSocket::bind(node.get_addr())
-            .expect("Rpc::new --> Error while binding UdpSocket to specified addr");
+            .expect("[FAILED] Rpc::new --> Error while binding UdpSocket to specified addr");
 
         Self {
             socket: Arc::new(socket),
@@ -70,8 +70,6 @@ impl Rpc {
         }
     }
     pub fn open(rpc: Rpc, sender: mpsc::Sender<ReqWrapper>) {
-        println!("[*] Network::open --> Listening on {:?}", &rpc.socket);
-
         thread::spawn(move || {
             let mut buf = [0u8; BUF_SIZE];
 
@@ -79,25 +77,27 @@ impl Rpc {
                 let (len, src_addr) = rpc
                     .socket
                     .recv_from(&mut buf)
-                    .expect("Rpc::open --> Failed to receive data from peer");
+                    .expect("[FAILED] Rpc::open --> Failed to receive data from peer");
 
-                let payload = String::from(
-                    str::from_utf8(&buf[..len])
-                        .expect("Rpc::open --> Unable to parse string from received bytes"),
-                );
+                let payload =
+                    String::from(str::from_utf8(&buf[..len]).expect(
+                        "[FAILED] Rpc::open --> Unable to parse string from received bytes",
+                    ));
 
                 let mut decoded: RpcMessage = serde_json::from_str(&payload)
-                    .expect("Rpc::open, serde_json --> Unable to decode string payload");
+                    .expect("[FAILED] Rpc::open, serde_json --> Unable to decode string payload");
 
                 decoded.src = src_addr.to_string();
 
-                println!(
-                    "----------\n[+] Received message: {:?}\n\ttoken: {:?}\n\tsrc: {}\n\tdst: {}\n\tmsg: {:?}\n----------",
-                    &decoded.msg, &decoded.token, &decoded.src, &decoded.dst, &decoded.msg
-                );
+                if super::VERBOSE {
+                    println!(
+                        "----------\n[+] Received message: {:?}\n\ttoken: {:?}\n\tsrc: {}\n\tdst: {}\n\tmsg: {:?}\n----------",
+                        &decoded.msg, &decoded.token, &decoded.src, &decoded.dst, &decoded.msg
+                    );
+                }
 
                 if decoded.dst != rpc.node.get_addr() {
-                    println!("[!] Destination address doesn't match node address, ignoring [!]");
+                    eprintln!("[WARNING] Rpc::open --> Destination address doesn't match node address, ignoring");
                     continue;
                 }
 
@@ -106,7 +106,6 @@ impl Rpc {
                         break;
                     }
                     Message::Request(req) => {
-                        println!("Request content: {:?}", &req);
                         let wrapped_req = ReqWrapper {
                             token: decoded.token,
                             src: decoded.src,
@@ -114,12 +113,11 @@ impl Rpc {
                         };
 
                         if let Err(_) = sender.send(wrapped_req) {
-                            println!("Rpc::open, Request --> Receiver is dead, closing channel.");
+                            eprintln!("[FAILED] Rpc::open, Request --> Receiver is dead, closing channel.");
                             break;
                         }
                     }
                     Message::Response(res) => {
-                        println!("Response content: {:?}", res);
                         rpc.clone().handle_response(decoded.token, res);
                     }
                 }
@@ -128,16 +126,11 @@ impl Rpc {
     }
 
     pub fn send_msg(&self, msg: &RpcMessage) {
-        let encoded =
-            serde_json::to_string(msg).expect("Rpc::send_msg --> Unable to serialize message");
+        let encoded = serde_json::to_string(msg)
+            .expect("[FAILED] Rpc::send_msg --> Unable to serialize message");
         self.socket
             .send_to(&encoded.as_bytes(), &msg.dst)
-            .expect("Rpc::send_msg --> Error while sending message to specified address");
-
-        println!(
-            "[+] Network::send_msg --> From: {}, To: {}, Token: {:?}",
-            &msg.src, &msg.dst, &msg.token
-        );
+            .expect("[FAILED] Rpc::send_msg --> Error while sending message to specified address");
     }
 
     pub fn handle_response(self, token: Key, res: Response) {
@@ -145,13 +138,13 @@ impl Rpc {
             let mut pending = self
                 .pending
                 .lock()
-                .expect("Failed to acquire lock on 'Pending' struct");
+                .expect("[FAILED] Rpc::handle_response --> Failed to acquire lock on Pending");
 
             let tmp = match pending.get(&token) {
                 Some(sender) => sender.send(Some(res)),
                 None => {
                     eprintln!(
-                        "Rpc::handle_response --> Unsolicited response received, ignoring..."
+                        "[WARNING] Rpc::handle_response --> Unsolicited response received, ignoring..."
                     );
                     return;
                 }
@@ -168,7 +161,7 @@ impl Rpc {
         let mut pending = self
             .pending
             .lock()
-            .expect("Failed to acquire mutex on 'Pending' struct");
+            .expect("[FAILED] Rpc::make_request --> Failed to acquire mutex on Pending");
 
         let token = Key::new(format!(
             "{}:{}:{:?}",
@@ -194,7 +187,7 @@ impl Rpc {
                 let mut pending = rpc
                     .pending
                     .lock()
-                    .expect("Failed to acquire mutex on 'Pending' struct");
+                    .expect("[FAILED] Rpc::make_request --> Failed to acquire mutex on Pending");
                 pending.remove(&token);
             }
         });

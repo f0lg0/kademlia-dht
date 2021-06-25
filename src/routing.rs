@@ -142,14 +142,11 @@ impl RoutingTable {
                 .position(|x| x.id == node.id);
             match node_idx {
                 Some(i) => {
-                    println!("[VERBOSE] Routing::update --> Node was already in the kbucket, moving it to the tail of the list");
                     self.kbuckets[bucket_idx].nodes.remove(i);
                     self.kbuckets[bucket_idx].nodes.push(node);
                 }
                 None => {
-                    println!("[VERBOSE] Routing::update --> First time we see this contact, pushing to the tail of the list");
                     self.kbuckets[bucket_idx].nodes.push(node);
-                    println!("[DEBUG] Routing::update --> pushed");
                 }
             }
         } else {
@@ -167,7 +164,7 @@ impl RoutingTable {
                     self.kbuckets[bucket_idx].nodes.push(to_re_add);
                 }
                 ChannelPayload::Request(_) => {
-                    println!("[FAILED] Routing::update --> Unexpectedly got a Request instead of a Response");
+                    eprintln!("[FAILED] Routing::update --> Unexpectedly got a Request instead of a Response");
                 }
                 ChannelPayload::NoData => {
                     self.kbuckets[bucket_idx].nodes.remove(0);
@@ -186,12 +183,8 @@ impl RoutingTable {
             .position(|x| x.id == node.id)
         {
             self.kbuckets[bucket_idx].nodes.remove(i);
-            println!(
-                "[VERBOSE] Routing::remove --> removed contact with index: {}",
-                i
-            );
         } else {
-            println!("[WARN] Tried to remove non-existing entry");
+            eprintln!("[WARN] Routing::remove --> Tried to remove non-existing entry");
         }
     }
 

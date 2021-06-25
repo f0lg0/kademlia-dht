@@ -24,6 +24,8 @@ const TIMEOUT: u64 = 5000;
 // number of concurrent lookups in node lookup
 const ALPHA: usize = 3;
 
+const VERBOSE: bool = false;
+
 #[cfg(test)]
 mod tests {
     use super::key::Distance;

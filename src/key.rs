@@ -26,7 +26,7 @@ impl Key {
 impl Debug for Key {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         for x in &self.0 {
-            write!(f, "{:X}", x).expect("Failed to format contents of Key");
+            write!(f, "{:X}", x).expect("[FAILED] Key::Debug --> Failed to format contents of Key");
         }
         Ok(())
     }
@@ -49,7 +49,8 @@ impl Distance {
 impl Debug for Distance {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         for x in &self.0 {
-            write!(f, "{:X}", x).expect("Failed to format contents of Key");
+            write!(f, "{:X}", x)
+                .expect("[FAILED] Distance::Debug --> Failed to format contents of Key");
         }
         Ok(())
     }
