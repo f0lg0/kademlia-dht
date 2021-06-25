@@ -195,7 +195,7 @@ impl RoutingTable {
             return ret;
         }
 
-        // ! TODO: slow method, must improve
+        // ! TODO: this gets extremely slow in a decently sized network, must improve
         for bucket in &self.kbuckets {
             for node in &bucket.nodes {
                 ret.push(NodeAndDistance(node.clone(), Distance::new(&node.id, key)));
