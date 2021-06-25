@@ -20,9 +20,6 @@ fn main() {
 		Some(root.clone()),
 	);
 
-	interface0.ping(interface1.node.clone());
-	interface2.ping(interface1.node.clone());
-
 	interface0.put("some_key".to_owned(), "some_value".to_owned());
 	let get_res = interface2.get("some_key".to_owned());
 	dbg!(get_res);
