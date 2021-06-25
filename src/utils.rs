@@ -32,6 +32,16 @@ pub fn get_local_ip() -> Option<String> {
     };
 }
 
+pub fn make_req_get_res(
+    rpc: &network::Rpc,
+    req: network::Request,
+    dst: Node,
+) -> Option<network::Response> {
+    rpc.make_request(req, dst)
+        .recv()
+        .expect("[FAILED] Utils::make_req_get_res --> Failed to receive response through channel")
+}
+
 pub fn dump_interface_state(interface: &Protocol, path: &str) {
     create_dir_all("dumps").expect("utils::dump_interface_state --> Unable to create dumps dir");
 

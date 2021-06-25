@@ -1,7 +1,7 @@
 use super::network;
 use super::node::Node;
 use super::routing;
-use super::utils::ChannelPayload;
+use super::utils;
 
 use crossbeam_channel;
 use std::collections::{BinaryHeap, HashMap, HashSet};
@@ -57,8 +57,8 @@ impl Protocol {
 
     fn rt_forwarder(
         self,
-        sender: crossbeam_channel::Sender<ChannelPayload>,
-        receiver: crossbeam_channel::Receiver<ChannelPayload>,
+        sender: crossbeam_channel::Sender<utils::ChannelPayload>,
+        receiver: crossbeam_channel::Receiver<utils::ChannelPayload>,
     ) {
         std::thread::spawn(move || {
             for req in receiver.iter() {
@@ -70,17 +70,17 @@ impl Protocol {
                     &req
                 );
                 std::thread::spawn(move || match req {
-                    ChannelPayload::Request(payload) => match payload.0 {
+                    utils::ChannelPayload::Request(payload) => match payload.0 {
                         network::Request::Ping => {
                             let success = protocol.ping(payload.1);
                             if success {
                                 if let Err(_) = sender_clone
-                                    .send(ChannelPayload::Response(network::Response::Ping))
+                                    .send(utils::ChannelPayload::Response(network::Response::Ping))
                                 {
                                     println!("[FAILED] Protocol::rt_forwared --> Receiver is dead, closing channel");
                                 }
                             } else {
-                                if let Err(_) = sender_clone.send(ChannelPayload::NoData) {
+                                if let Err(_) = sender_clone.send(utils::ChannelPayload::NoData) {
                                     println!("[FAILED] Protocol::rt_forwared --> Receiver is dead, closing channel");
                                 }
                             }
@@ -89,10 +89,10 @@ impl Protocol {
                             unimplemented!();
                         }
                     },
-                    ChannelPayload::Response(_) => {
+                    utils::ChannelPayload::Response(_) => {
                         println!("[FAILED] Protocol::rt_forwarder --> Received a Response instead of a Request")
                     }
-                    ChannelPayload::NoData => {
+                    utils::ChannelPayload::NoData => {
                         println!("[FAILED] Protocol::rt_forwarder --> Received a NoData instead of a Request")
                     }
                 });
@@ -210,12 +210,7 @@ impl Protocol {
     }
 
     pub fn ping(&self, dst: Node) -> bool {
-        println!("[STATUS] Protocol::ping --> Pinging...");
-        let res = self
-            .rpc
-            .make_request(network::Request::Ping, dst.clone())
-            .recv()
-            .expect("Failed to receive data from channel while awaiting Ping response");
+        let res = utils::make_req_get_res(&self.rpc, network::Request::Ping, dst.clone());
 
         let mut routes = self
             .routes
@@ -236,11 +231,8 @@ impl Protocol {
     }
 
     pub fn store(&self, dst: Node, key: String, val: String) -> bool {
-        let res = self
-            .rpc
-            .make_request(network::Request::Store(key, val), dst.clone())
-            .recv()
-            .expect("[FAILED] Protocol::store --> Failed to receive response through channel");
+        let res =
+            utils::make_req_get_res(&self.rpc, network::Request::Store(key, val), dst.clone());
 
         // since we get a ping, update our routing table
         let mut routes = self
@@ -261,11 +253,7 @@ impl Protocol {
         dst: Node,
         id: super::key::Key,
     ) -> Option<Vec<routing::NodeAndDistance>> {
-        let res = self
-            .rpc
-            .make_request(network::Request::FindNode(id), dst.clone())
-            .recv()
-            .expect("[FAILED] Protocol::find_node --> Failed to receive response through channel");
+        let res = utils::make_req_get_res(&self.rpc, network::Request::FindNode(id), dst.clone());
 
         let mut routes = self
             .routes
@@ -281,11 +269,7 @@ impl Protocol {
     }
 
     pub fn find_value(&self, dst: Node, k: String) -> Option<routing::FindValueResult> {
-        let res = self
-            .rpc
-            .make_request(network::Request::FindValue(k), dst.clone())
-            .recv()
-            .expect("[FAILED] Protocol::find_value --> Failed to receive response through channel");
+        let res = utils::make_req_get_res(&self.rpc, network::Request::FindValue(k), dst.clone());
 
         let mut routes = self
             .routes
