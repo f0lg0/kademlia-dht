@@ -236,13 +236,6 @@ impl Protocol {
     }
 
     pub fn store(&self, dst: Node, key: String, val: String) -> bool {
-        /*
-        TODO:
-            For both to store and to find a <key,value>-pair, a node lookup must performed. If a <key,value>-
-            pair shall be stored in the network, a node lookup for the key is conducted. Thereafter, STORE-
-            RPCs are sent to all of the k nodes the node lookup has returned. A STORE-RPC instructs a
-            node to store the <key,value>-pair contained in the message locally.
-        */
         let res = self
             .rpc
             .make_request(network::Request::Store(key, val), dst.clone())
