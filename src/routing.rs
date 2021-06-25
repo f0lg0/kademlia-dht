@@ -203,6 +203,8 @@ impl RoutingTable {
         }
 
         ret.sort_by(|a, b| a.1.cmp(&b.1));
+        // in case we exceed the wanted size
+        ret.truncate(count);
         ret
     }
 }
