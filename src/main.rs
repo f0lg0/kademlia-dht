@@ -41,6 +41,9 @@ fn main() {
 	let find_value = interface2.find_value(some_node.clone(), "some_key".to_string());
 	println!("find_value: {:?}", find_value);
 
+	let value_lookup = interface1.value_lookup("some_key".to_owned());
+	println!("value_lookup for 'some_key': {:?}", value_lookup);
+
 	utils::dump_interface_state(&interface0, "dumps/interface0.json");
 	utils::dump_interface_state(&interface1, "dumps/interface1.json");
 	utils::dump_interface_state(&interface2, "dumps/interface2.json");

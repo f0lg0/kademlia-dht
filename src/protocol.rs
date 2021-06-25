@@ -374,4 +374,80 @@ impl Protocol {
 
         ret
     }
+
+    pub fn value_lookup(&self, k: String) -> (Option<String>, Vec<routing::NodeAndDistance>) {
+        // NOTE: k and key are two different things, one is a string used to search for the corresponding value while the other is a key::Key
+
+        let mut ret: Vec<routing::NodeAndDistance> = Vec::new();
+        let key = super::key::Key::new(k.clone());
+        let mut queried = HashSet::new();
+
+        let routes = self.routes.lock().expect(
+            "[FAILED] Protocol::value_lookup --> Failed to acquire mutex on 'Routes' struct",
+        );
+        let mut to_query = BinaryHeap::from(routes.get_closest_nodes(&key, super::K_PARAM));
+        drop(routes);
+
+        for entry in &to_query {
+            queried.insert(entry.clone());
+        }
+
+        while !to_query.is_empty() {
+            let mut joins: Vec<std::thread::JoinHandle<Option<routing::FindValueResult>>> =
+                Vec::new();
+            let mut queries: Vec<routing::NodeAndDistance> = Vec::new();
+            let mut results: Vec<Option<routing::FindValueResult>> = Vec::new();
+
+            for _ in 0..super::ALPHA {
+                match to_query.pop() {
+                    Some(entry) => {
+                        queries.push(entry);
+                    }
+                    None => {
+                        break;
+                    }
+                }
+            }
+
+            for &routing::NodeAndDistance(ref n, _) in &queries {
+                let k_clone = k.clone();
+                let node = n.clone();
+                let protocol = self.clone();
+
+                joins.push(std::thread::spawn(move || {
+                    protocol.find_value(node, k_clone)
+                }));
+            }
+
+            for j in joins {
+                results.push(j.join().expect("[FAILED] Protocol::value_lookup --> Failed to join thread while searching for value"));
+            }
+
+            for (result, query) in results.into_iter().zip(queries) {
+                if let Some(find_value_result) = result {
+                    match find_value_result {
+                        routing::FindValueResult::Nodes(entries) => {
+                            // we didn't get the value we looked for
+                            ret.push(query);
+                            for entry in entries {
+                                if queried.insert(entry.clone()) {
+                                    to_query.push(entry);
+                                }
+                            }
+                        }
+
+                        routing::FindValueResult::Value(val) => {
+                            ret.sort_by(|a, b| a.1.cmp(&b.1));
+                            ret.truncate(super::K_PARAM);
+
+                            return (Some(val), ret);
+                        }
+                    }
+                }
+            }
+        }
+        ret.sort_by(|a, b| a.1.cmp(&b.1));
+        ret.truncate(super::K_PARAM);
+        (None, ret)
+    }
 }
