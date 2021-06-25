@@ -464,4 +464,18 @@ impl Protocol {
             });
         }
     }
+
+    pub fn get(&self, k: String) -> Option<String> {
+        let (val, mut nodes) = self.value_lookup(k.clone());
+
+        val.map(|v| {
+            if let Some(routing::NodeAndDistance(target, _)) = nodes.pop() {
+                self.store(target, k, v.clone());
+            } else {
+                self.store(self.node.clone(), k, v.clone());
+            }
+
+            v
+        })
+    }
 }

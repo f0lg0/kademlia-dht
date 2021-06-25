@@ -23,27 +23,9 @@ fn main() {
 	interface0.ping(interface1.node.clone());
 	interface2.ping(interface1.node.clone());
 
-	// interface0.store(
-	// 	interface1.node.clone(),
-	// 	"some_key".to_string(),
-	// 	"some_value".to_string(),
-	// );
-
-	// interface0.store(
-	// 	interface1.node.clone(),
-	// 	"another_key".to_string(),
-	// 	"another_value".to_string(),
-	// );
 	interface0.put("some_key".to_owned(), "some_value".to_owned());
-
-	let find_node = interface0.find_node(some_node.clone(), another_node.id.clone());
-	println!("find_node: {:?}", find_node);
-
-	let find_value = interface2.find_value(some_node.clone(), "some_key".to_string());
-	println!("find_value: {:?}", find_value);
-
-	let value_lookup = interface1.value_lookup("some_key".to_owned());
-	println!("value_lookup for 'some_key': {:?}", value_lookup);
+	let get_res = interface2.get("some_key".to_owned());
+	dbg!(get_res);
 
 	utils::dump_interface_state(&interface0, "dumps/interface0.json");
 	utils::dump_interface_state(&interface1, "dumps/interface1.json");
