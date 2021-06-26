@@ -189,21 +189,48 @@ impl RoutingTable {
     }
 
     pub fn get_closest_nodes(&self, key: &Key, count: usize) -> Vec<NodeAndDistance> {
+        /*
+            Notes:
+
+            Kademlia seems not to specify a nice way to search for K closest nodes
+
+            # Method 1 (currently the best one)
+                1) look at which bucket index the key falls into
+                2) check buckets higher up that index
+                3) check buckets lower down that index
+                (of course stop when you reach the desired count)
+        */
+
         let mut ret = Vec::with_capacity(count);
 
         if count == 0 {
             return ret;
         }
 
-        // ! TODO: this gets extremely slow in a decently sized network, must improve
-        for bucket in &self.kbuckets {
-            for node in &bucket.nodes {
+        let mut bucket_index = self.get_lookup_bucket_index(key);
+        let mut bucket_index_copy = bucket_index;
+
+        for node in &self.kbuckets[bucket_index].nodes {
+            ret.push(NodeAndDistance(node.clone(), Distance::new(&node.id, key)));
+        }
+
+        while ret.len() < count && bucket_index < self.kbuckets.len() - 1 {
+            bucket_index += 1;
+
+            for node in &self.kbuckets[bucket_index].nodes {
+                ret.push(NodeAndDistance(node.clone(), Distance::new(&node.id, key)));
+            }
+        }
+
+        while ret.len() < count && bucket_index_copy > 0 {
+            bucket_index_copy -= 1;
+
+            for node in &self.kbuckets[bucket_index_copy].nodes {
                 ret.push(NodeAndDistance(node.clone(), Distance::new(&node.id, key)));
             }
         }
 
         ret.sort_by(|a, b| a.1.cmp(&b.1));
-        // in case we exceed the wanted size
         ret.truncate(count);
         ret
     }
