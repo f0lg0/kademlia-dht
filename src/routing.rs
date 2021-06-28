@@ -194,11 +194,17 @@ impl RoutingTable {
 
             Kademlia seems not to specify a nice way to search for K closest nodes
 
-            # Method 1 (currently the best one)
+            # Method 1 (currently in use)
                 1) look at which bucket index the key falls into
                 2) check buckets higher up that index
                 3) check buckets lower down that index
                 (of course stop when you reach the desired count)
+
+            # Method 2 (check issue #2 for a better explaination)
+                1) calculate the distance between two IDs
+                2) visit every kbucket by looking at the XOR result:
+                    - if a bit is set then take its position as an index and visit that kbucket
+                    - bits that are not set are used only after the set ones are used
         */
 
         let mut ret = Vec::with_capacity(count);
