@@ -6,7 +6,7 @@ use kademlia_dht::utils;
 // use std::{thread, time};
 
 const BIG_TEST: bool = true;
-const NET_SIZE: usize = 10;
+const NET_SIZE: usize = 20;
 
 fn test_big_net() {
 	let mut interfaces: Vec<Protocol> = Vec::with_capacity(NET_SIZE);

@@ -16,7 +16,7 @@ const N_BUCKETS: usize = KEY_LEN * 8;
 const K_PARAM: usize = 20;
 
 // buffer size used for streaming UDP
-const BUF_SIZE: usize = 4096;
+const BUF_SIZE: usize = 4096 * 2;
 
 // response timeout 5000ms
 const TIMEOUT: u64 = 5000;
