@@ -27,19 +27,16 @@ fn test_big_net() {
 		);
 
 		base_port += 1;
-		// thread::sleep(time::Duration::from_secs(1));
 	}
 
 	for (index, interface) in interfaces.iter().enumerate() {
 		println!("[+] Putting <key, value> pair for index: {}", index);
 		interface.put(format!("key_{}", index), format!("value_{}", index));
-		// thread::sleep(time::Duration::from_secs(1));
 	}
 
 	for (index, interface) in interfaces.iter().enumerate() {
 		let res = interface.get(format!("key_{}", index));
 		println!("[*] Looking for key_{}, got {}", index, res.unwrap());
-		// thread::sleep(time::Duration::from_secs(1));
 	}
 }
 

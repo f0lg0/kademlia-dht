@@ -16,7 +16,70 @@ src/
   lib.rs        ---> Main lib file
 ```
 
-## Brief documentation
+## Usage
+
+### Interface creation
+
+In order to join the network you must create an interface with the `Protocol::new` method:
+
+```rust
+// BRAND NEW NETWORK
+// if you want you can explicitely create a node first
+let root = Node::new(utils::get_local_ip().unwrap(), 8080);
+
+// it needs an IP, a PORT and an Option<Node> (bootstrap node)
+let root_interface = Protocol::new(root.ip.clone(), root.port.clone(), None);
+```
+
+If you want to join a network and you already know a peer you can provide it as a `bootstrap` node:
+
+### Main operations
+
+These are the main operations, there are more methods you can use but these are the ones you probably need (see [Docs](##Documentation) for more).
+
+#### PUT
+
+Store a `<key, value>` pair in the network:
+
+```rust
+// interface is already defined
+interface.put("some_key", "some_value");
+```
+
+#### GET
+
+Retreive a value from the network given its key:
+
+```rust
+// interface is already defined
+let value = interface.get("some_key"); // some_value
+```
+
+```rust
+// this is the contact we already know
+let root = Node::new(utils::get_local_ip().unwrap(), 8080);
+
+let our_node = Node::new(utils::get_local_ip().unwrap(), 8081);
+let our_interface = Protocol::new(our_node.ip, our_node.port, Some(root.clone())));
+```
+
+## Example program
+
+I've written an example program to test the lib out. In order to run it issue the following command:
+
+```
+cargo run
+```
+
+It will spin up 10 nodes and it will test the `PUT` and the `GET` method.
+
+If you want to run tests, issue:
+
+```
+cargo test
+```
+
+## Documentation
 
 ### Kademlia node
 
@@ -399,6 +462,62 @@ Method used to extract a value from the network given a key. It calls `value_loo
 
 ```rust
 pub fn get(&self, k: String) -> Option<String>
+```
+
+## State dumping
+
+There are two `utils.rs` methods used to dump the internal state of a Kademlia node:
+
+```rust
+pub fn dump_interface_state(interface: &Protocol, path: &str)
+```
+
+Dumps the `Protocol` object to a given file path (**must be** `dumps/<name>.json`, where you choose `name`). It dumps it as `json` and as `plantuml`.
+
+Here's an example of the rendered dump using PlantUML:
+
+![example](./images/dump.png)
+
+```rust
+pub fn dump_node_and_distance(
+    entries: &Vec<NodeAndDistance>,
+    target: &super::key::Key,
+    path: &str,
+) {
+```
+
+Dumps a vector of `NodeAndDistance`s in `json` format. Example:
+
+```json
+{
+    "found": [
+        {
+            "distance": "00000000000000000000000000000000",
+            "node": {
+                "id": "9278733FBB7F4C6914839C98A54912F4F18B3F15EAED15178663AA5FC63",
+                "ip": "192.168.1.10",
+                "port": 1339
+            }
+        },
+        {
+            "distance": "3D0C24670ACCA14C1DEE576D7AF2D85486F125E4E0BFD664CCDABA9E532ED2",
+            "node": {
+                "id": "342BA354F17B558A8CA66EA4F0A6497BC9E99615BE11735CBD2DCA4F6D2B1",
+                "ip": "192.168.1.10",
+                "port": 1338
+            }
+        },
+        {
+            "distance": "B8F339EA9FB5DECF23F9C7D754476AD9C6698AC5787281EF371456C766F96C88",
+            "node": {
+                "id": "B1F14199A0EA18325688FEE9DCD3E48E9269276892C2F3E66135EA15C5C90EB",
+                "ip": "192.168.1.10",
+                "port": 1337
+            }
+        }
+    ],
+    "target": "9278733FBB7F4C6914839C98A54912F4F18B3F15EAED15178663AA5FC63"
+}
 ```
 
 ## Implemented features
