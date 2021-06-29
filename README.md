@@ -6,14 +6,14 @@ Implementation of the Kademlia DHT protocol in Rust
 
 ```
 src/
-	key.res		---> Implementation of the 256bits unique ID
-	node.rs		---> Node struct definition
-	network.rs	---> Network module used to issue RPCs
-	routing.rs	---> Routing Table implementation using vectors
-	protocol.rs ---> Main library API
-	utils.rs	---> General utilities functions
-	main.rs		---> Example program
-	lib.rs		---> Main lib file
+  key.res       ---> Implementation of the 256bits unique ID
+  node.rs       ---> Node struct definition
+  network.rs    ---> Network module used to issue RPCs
+  routing.rs    ---> Routing Table implementation using vectors
+  protocol.rs   ---> Main library API
+  utils.rs      ---> General utilities functions
+  main.rs       ---> Example program
+  lib.rs        ---> Main lib file
 ```
 
 ## Implemented features
