@@ -3,10 +3,11 @@ use kademlia_dht::node::Node;
 use kademlia_dht::protocol::Protocol;
 use kademlia_dht::utils;
 
-// use std::{thread, time};
-
 const BIG_TEST: bool = true;
-const NET_SIZE: usize = 20;
+
+// be careful with the net size, for example my computer can't spawn too many threads
+// messages may also exceed the buffer size used for streaming (see issue #1)
+const NET_SIZE: usize = 10;
 
 fn test_big_net() {
 	let mut interfaces: Vec<Protocol> = Vec::with_capacity(NET_SIZE);
