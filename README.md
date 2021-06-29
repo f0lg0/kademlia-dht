@@ -53,6 +53,7 @@ Simple implementation of the Kademlia DHT protocol in Rust with state dumping fe
     -   [Missing features](#missing-features)
     -   [Enhancements](#enhancements)
     -   [References](#references)
+    -   [Thanks](#thanks)
 
 ## Lib structure
 
@@ -621,3 +622,7 @@ Features specified in the paper that are implemented in this lib
 
 -   TinyTorrent: Implementing a Kademlia Based DHT
     for File Sharing by Sierra Kaplan-Nelson, Jestin Ma, Jake Rachleff [PDF](https://www.scs.stanford.edu/17au-cs244b/labs/projects/kaplan-nelson_ma_rachleff.pdf)
+
+## Thanks
+
+Thanks for taking the time to check out my library. If you found this good enough to be on `crates.io` please let me know!
