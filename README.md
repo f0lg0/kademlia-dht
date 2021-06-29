@@ -2,11 +2,57 @@
 
 Simple implementation of the Kademlia DHT protocol in Rust with state dumping features.
 
+## Table of contents
 
-
-[TOC]
-
-
+-   [kademlia-dht](#kademlia-dht)
+    -   [Lib structure](#lib-structure)
+    -   [Usage](#usage)
+        -   [Interface creation](#interface-creation)
+        -   [Main operations](#main-operations)
+            -   [PUT](#put)
+            -   [GET](#get)
+    -   [Example program](#example-program)
+    -   [Documentation](#documentation)
+        -   [Kademlia node](#kademlia-node)
+            -   [Node::new](#nodenew)
+            -   [get_info](#get_info)
+            -   [get_addr](#get_addr)
+        -   [256bits Key and Distance](#256bits-key-and-distance)
+            -   [Key::new](#keynew)
+            -   [Distance::new](#distancenew)
+        -   [Routing Table](#routing-table)
+            -   [Routing::new](#routingnew)
+            -   [get_lookup_bucket_index](#get_lookup_bucket_index)
+            -   [contact_via_rpc](#contact_via_rpc)
+            -   [update](#update)
+            -   [remove](#remove)
+            -   [get_closest_nodes](#get_closest_nodes)
+        -   [Network](#network)
+            -   [Request](#request)
+            -   [Response](#response)
+            -   [Message](#message)
+            -   [RpcMessage](#rpcmessage)
+            -   [Rpc::new](#rpcnew)
+            -   [Rpc::open](#rpcopen)
+            -   [send_msg](#send_msg)
+            -   [handle_response](#handle_response)
+            -   [make_request](#make_request)
+        -   [Kademlia interface creation](#kademlia-interface-creation)
+            -   [Protocol::new](#protocolnew)
+            -   [rt_forwarder](#rt_forwarder)
+            -   [request_handler](#request_handler)
+            -   [craft_res](#craft_res)
+            -   [reply](#reply)
+            -   [Kademlia API](#kademlia-api)
+            -   [nodes_lookup](#nodes_lookup)
+            -   [value_lookup](#value_lookup)
+            -   [put](#put)
+            -   [get](#get)
+    -   [State dumping](#state-dumping)
+    -   [Implemented features](#implemented-features)
+    -   [Missing features](#missing-features)
+    -   [Enhancements](#enhancements)
+    -   [References](#references)
 
 ## Lib structure
 
