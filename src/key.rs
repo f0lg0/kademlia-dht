@@ -1,7 +1,7 @@
 use super::KEY_LEN;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::fmt::{Debug, Error, Formatter};
+use std::fmt::{Binary, Debug, Error, Formatter};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Key(pub [u8; KEY_LEN]);
@@ -51,6 +51,16 @@ impl Debug for Distance {
         for x in &self.0 {
             write!(f, "{:X}", x)
                 .expect("[FAILED] Distance::Debug --> Failed to format contents of Key");
+        }
+        Ok(())
+    }
+}
+
+impl Binary for Distance {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        for x in &self.0 {
+            write!(f, "{:b}", x)
+                .expect("[FAILED] Key::Binary --> Failed to format contents of Distance");
         }
         Ok(())
     }
