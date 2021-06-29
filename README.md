@@ -31,14 +31,15 @@ Features specified in the paper that are implemented in this lib
 -   [x] FIND_NODE
 -   [x] FIND_VALUE
 -   [x] Node lookup
+-   [x] Republishing of `<key, value>` pairs every hour
+
+    -   [ ] technically, the original publisher should republish ever 24 hours
 
 ## Missing features
 
--   [ ] Republishing of `<key, value>` pairs every hour
-
-    -   [ ] original publisher republishes ever 24 hours
-
 -   [ ] expiration date on `<key, value>` pairs
+
+    -   this isn't wanted when kademlia is used in a decentralized storage system
 
 -   [ ] replicate closest `<key, value>` pairs when a node joins the network
 
@@ -51,11 +52,11 @@ Features specified in the paper that are implemented in this lib
 ## References
 
 -   Kademlia: A Peer-to-peer Information System
-    Based on the XOR Metric by Petar Maymounkov and David Mazières (original paper)
+    Based on the XOR Metric by Petar Maymounkov and David Mazières [PDF](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.18.6160&rep=rep1&type=pdf)
 
--   Implementation of the Kademlia Distributed Hash Table by Bruno Spori
+-   Implementation of the Kademlia Distributed Hash Table by Bruno Spori [PDF](https://pub.tik.ee.ethz.ch/students/2006-So/SA-2006-19.pdf)
 
--   Kademlia: A Design Specification by XLattice project
+-   Kademlia: A Design Specification by XLattice project [PDF](http://xlattice.sourceforge.net/components/protocol/kademlia/specs.pdf)
 
 -   TinyTorrent: Implementing a Kademlia Based DHT
-    for File Sharing by Sierra Kaplan-Nelson, Jestin Ma, Jake Rachleff
+    for File Sharing by Sierra Kaplan-Nelson, Jestin Ma, Jake Rachleff [PDF](https://www.scs.stanford.edu/17au-cs244b/labs/projects/kaplan-nelson_ma_rachleff.pdf)
