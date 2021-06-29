@@ -2,6 +2,12 @@
 
 Simple implementation of the Kademlia DHT protocol in Rust with state dumping features.
 
+
+
+[TOC]
+
+
+
 ## Lib structure
 
 ```
