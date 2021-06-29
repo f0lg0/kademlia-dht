@@ -20,6 +20,7 @@ impl Protocol {
     pub fn new(ip: String, port: u16, bootstrap: Option<Node>) -> Self {
         let node = Node::new(ip, port);
 
+        // channel used for a 2-way communication with the Routing Table module
         let (rt_channel_sender, rt_channel_receiver) = crossbeam_channel::unbounded();
 
         let routes = routing::RoutingTable::new(
@@ -29,6 +30,7 @@ impl Protocol {
             rt_channel_receiver.clone(),
         );
 
+        // 1-way channel to communicate with the Network module
         let (rpc_channel_sender, rpc_channel_receiver) = mpsc::channel();
 
         let rpc = network::Rpc::new(node.clone());
@@ -69,6 +71,7 @@ impl Protocol {
         }
     }
 
+    // forwards upcoming requests (only Pings at the moment) from the Routing table
     fn rt_forwarder(
         self,
         sender: crossbeam_channel::Sender<utils::ChannelPayload>,
@@ -110,6 +113,7 @@ impl Protocol {
         });
     }
 
+    // handles requests by crafting responses and sending them
     fn requests_handler(self, receiver: mpsc::Receiver<network::ReqWrapper>) {
         std::thread::spawn(move || {
             for req in receiver.iter() {
@@ -286,12 +290,14 @@ impl Protocol {
     pub fn nodes_lookup(&self, id: &super::key::Key) -> Vec<routing::NodeAndDistance> {
         let mut ret: Vec<routing::NodeAndDistance> = Vec::new();
 
+        // nodes visited
         let mut queried = HashSet::new();
         let routes = self
             .routes
             .lock()
             .expect("[FAILED] Protocol::nodes_lookup --> Failed to acquire mutex on Routes");
 
+        // nodes to visit
         let mut to_query = BinaryHeap::from(routes.get_closest_nodes(id, super::K_PARAM));
         drop(routes);
 
@@ -300,8 +306,10 @@ impl Protocol {
         }
 
         while !to_query.is_empty() {
+            // threads joins
             let mut joins: Vec<std::thread::JoinHandle<Option<Vec<routing::NodeAndDistance>>>> =
                 Vec::new();
+            // outgoing queries
             let mut queries: Vec<routing::NodeAndDistance> = Vec::new();
             let mut results: Vec<Option<Vec<routing::NodeAndDistance>>> = Vec::new();
 

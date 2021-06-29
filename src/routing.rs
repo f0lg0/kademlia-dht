@@ -105,6 +105,8 @@ impl RoutingTable {
         //  2^j <= distance(node, contact) < 2^(j+1)
         // a node with distance d will be put in the k-bucket with index i=⌊logd⌋
 
+        // this is a method I found online but I don't remember the source. This function was probably the hardest problem I have encountered
+        // another solution would be computing the log base 10 of the distance
         let d = Distance::new(&self.node.id, key);
         for i in 0..super::KEY_LEN {
             for j in (0..8).rev() {

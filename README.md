@@ -1,6 +1,6 @@
 # kademlia-dht
 
-Simple implementation of the Kademlia DHT protocol in Rust with state dumping features.
+Simple implementation of the Kademlia DHT protocol in Rust with state dumping features for **educational purposes** (not production-ready).
 
 ## Table of contents
 
@@ -85,6 +85,14 @@ let root_interface = Protocol::new(root.ip.clone(), root.port.clone(), None);
 
 If you want to join a network and you already know a peer you can provide it as a `bootstrap` node:
 
+```rust
+// this is the contact we already know
+let root = Node::new(utils::get_local_ip().unwrap(), 8080);
+
+let our_node = Node::new(utils::get_local_ip().unwrap(), 8081);
+let our_interface = Protocol::new(our_node.ip, our_node.port, Some(root.clone())));
+```
+
 ### Main operations
 
 These are the main operations, there are more methods you can use but these are the ones you probably need (see [Docs](##Documentation) for more).
@@ -107,14 +115,6 @@ Retreive a value from the network given its key:
 let value = interface.get("some_key"); // some_value
 ```
 
-```rust
-// this is the contact we already know
-let root = Node::new(utils::get_local_ip().unwrap(), 8080);
-
-let our_node = Node::new(utils::get_local_ip().unwrap(), 8081);
-let our_interface = Protocol::new(our_node.ip, our_node.port, Some(root.clone())));
-```
-
 ## Example program
 
 I've written an example program to test the lib out. In order to run it issue the following command:
@@ -132,6 +132,8 @@ cargo test
 ```
 
 ## Documentation
+
+Very brief and not detailed explaination of the library. I left some comments in the code to help people understand it better. If this project will be useful for some people I will expand this section.
 
 ### Kademlia node
 
@@ -196,7 +198,7 @@ let dist = Distance::new(&node0.id, &node1.id); // as we know, the id field is o
 
 ### Routing Table
 
-The routing table is a struct containing a `node` fields, representing the current node instance, a `kbuckets` field which is a `Vec` of `KBucket` (a struct containing a `Vec` of nodes and a size field) and a _crossbeam_channel_ `sender` and `receiver`(external crate used to communicate with other modules).
+The routing table is a struct containing a `node` field, representing the current node instance, a `kbuckets` field which is a `Vec` of `KBucket` (a struct containing a `Vec` of nodes and a size field) and a _crossbeam_channel_ `sender` and `receiver`(external crate used to communicate with the protocol module).
 
 The routing table communicates with the `protocol.rs` module for some actions such as _pinging_ nodes that must be checked. The following struct (coming from `utils.rs`) is used in the _crossbeam_channel_:
 
@@ -227,7 +229,7 @@ pub fn new(
 
 #### get_lookup_bucket_index
 
-Gets the corresponding bucket index for a given node ID:
+Computes the corresponding bucket index for a given node ID with bitwise operations:
 
 ```rust
 fn get_lookup_bucket_index(&self, key: &Key) -> usize
@@ -266,14 +268,14 @@ In this method the `NodeAndDistance` struct is used, which is a tuple of a `Node
 Returns a Vector of `NodeAndDistance` for a given `Key` target:
 
 ```rust
-pub fn get_closest_nodes(&self, key: &Key, count: usize) -> Vec<NodeAndDistance> {
+pub fn get_closest_nodes(&self, key: &Key, count: usize) -> Vec<NodeAndDistance>
 ```
 
 ### Network
 
 The `network.rs` module provides methods to communicate to other network nodes. Here we issue `RPCs` (Remote Procedure Calls) through the `Rpc` struct.
 
-The `Rpc` contains a _socket_ field which is `Arc` to a `std::net::UdpSocket`, a _pending_ field which is a `Arc` `Mutex` around a `HashMap` of `Key`s and `mpsc::Sender<Option<Response>>` and a _node_ field representing the current node.
+The `Rpc` contains a _socket_ field which is an `Arc` to a `std::net::UdpSocket`, a _pending_ field which is an `Arc` `Mutex` around a `HashMap` of `Key`s and `mpsc::Sender<Option<Response>>` and a _node_ field representing the current node.
 
 ```rust
 pub struct Rpc {
@@ -382,7 +384,7 @@ Here we keep track of the `pending` HashMap.
 Makes a `Request` to a `dst` node that is then forwared to the `protocol.rs` module, also waits for the corresponding `Response` from the contacted node. It also handles the `pending` HashMap
 
 ```rust
-pub fn make_request(&self, req: Request, dst: Node) -> mpsc::Receiver<Option<Response>> {
+pub fn make_request(&self, req: Request, dst: Node) -> mpsc::Receiver<Option<Response>>
 ```
 
 ### Kademlia interface creation
