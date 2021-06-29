@@ -49,7 +49,24 @@ impl Protocol {
         // performing node lookup on ourselves
         protocol.nodes_lookup(&node.id);
 
+        // republishing <key, value> pairs every hour
+        let protocol_clone = protocol.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(60 * 60));
+            protocol_clone.republish();
+        });
+
         protocol
+    }
+
+    fn republish(&self) {
+        let st = self
+            .store
+            .lock()
+            .expect("[FAILED] Protocol::republish --> Failed to acquire mutex on Store");
+        for (key, value) in &*st {
+            self.put(key.to_string(), value.to_string());
+        }
     }
 
     fn rt_forwarder(
