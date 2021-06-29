@@ -626,3 +626,5 @@ Features specified in the paper that are implemented in this lib
 ## Thanks
 
 Thanks for taking the time to check out my library. If you found this good enough to be on `crates.io` please let me know!
+
+I will also make a small article about Kademlia in general. Check out my [blog](https://f0lg0.vercel.app/blog)!
