@@ -64,7 +64,7 @@ pub fn dump_interface_state(interface: &Protocol, path: &str) {
                 "nodes": {
                     "ip": n.ip,
                     "port": n.port,
-                    "id": format!("{:?}", interface.node.id),
+                    "id": format!("{:?}", n.id),
                 },
                 "size": kb.size,
             });
