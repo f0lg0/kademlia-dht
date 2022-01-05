@@ -74,15 +74,34 @@ impl Rpc {
             let mut buf = [0u8; BUF_SIZE];
 
             loop {
-                let (len, src_addr) = rpc
+                let (_, src_addr) = rpc
                     .socket
                     .recv_from(&mut buf)
                     .expect("[FAILED] Rpc::open --> Failed to receive data from peer");
 
+                let msg_len: u32 = str::from_utf8(&buf)
+                    .expect("[!] Failed to parse message length.")
+                    .parse::<u32>()
+                    .expect("[!] Failed to parse message length from string to u32");
+
+                println!("\ngot msg size: {}", msg_len);
+
+                let mut end_buf = Vec::with_capacity((msg_len + 1) as usize);
+                for _ in 0..(msg_len + 1) {
+                    end_buf.push(0x00);
+                }
+
+                // todo: the problem is that we dont continue straming the same msg after the first 4 bytes
+                let len = rpc
+                    .socket
+                    .recv(&mut end_buf)
+                    .expect("[FAILED] Rpc::open --> Failed to receive data from peer");
+
                 let payload =
-                    String::from(str::from_utf8(&buf[..len]).expect(
+                    String::from(str::from_utf8(&end_buf[..len]).expect(
                         "[FAILED] Rpc::open --> Unable to parse string from received bytes",
                     ));
+                println!("\ndecoded: {}", payload);
 
                 let mut decoded: RpcMessage = serde_json::from_str(&payload)
                     .expect("[FAILED] Rpc::open, serde_json --> Unable to decode string payload");
@@ -128,8 +147,12 @@ impl Rpc {
     pub fn send_msg(&self, msg: &RpcMessage) {
         let encoded = serde_json::to_string(msg)
             .expect("[FAILED] Rpc::send_msg --> Unable to serialize message");
+
+        let final_msg = format!("{:04}{}", encoded.len(), encoded);
+        println!("sending: {}", final_msg);
+
         self.socket
-            .send_to(&encoded.as_bytes(), &msg.dst)
+            .send_to(&final_msg.as_bytes(), &msg.dst)
             .expect("[FAILED] Rpc::send_msg --> Error while sending message to specified address");
     }
 
